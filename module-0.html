@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paramètres — ProcessOS</title>
+<script src="shared.js"></script>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar" class="topbar"></div>
+
+<!-- CONTENU -->
+<div style="flex:1;overflow-y:auto;">
+  <div style="max-width:800px;margin:0 auto;padding:24px 32px;">
+
+    <!-- EN-TÊTE PAGE -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <h1 style="font-size:18px;font-weight:500;color:var(--text);">⚙ Paramètres</h1>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Configuration globale de l'organisation — utilisée par tous les modules</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveAll()">Sauvegarder tout</button>
+    </div>
+
+    <!-- ONGLETS -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto;">
+      <div class="stab active" id="stab-org"  onclick="showTab('org')"   style="padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid var(--purple);color:var(--purple);white-space:nowrap;">Organisation</div>
+      <div class="stab"        id="stab-dept" onclick="showTab('dept')"  style="padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);white-space:nowrap;">Départements</div>
+      <div class="stab"        id="stab-role" onclick="showTab('role')"  style="padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);white-space:nowrap;">Rôles</div>
+      <div class="stab"        id="stab-site" onclick="showTab('site')"  style="padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);white-space:nowrap;">Sites</div>
+      <div class="stab"        id="stab-norm" onclick="showTab('norm')"  style="padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);white-space:nowrap;">Normes ISO</div>
+    </div>
+
+    <!-- PANNEAU ORGANISATION -->
+    <div id="tab-org">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div class="fg">
+          <div class="fl">Nom de l'organisation</div>
+          <input class="fi" id="org-name" placeholder="Ex: Industrie Plus SA">
+        </div>
+        <div class="fg">
+          <div class="fl">Secteur d'activité</div>
+          <select class="fi" id="org-sector">
+            <option>Industrie générale</option>
+            <option>Dispositifs médicaux</option>
+            <option>Pharmaceutique</option>
+            <option>Agroalimentaire</option>
+            <option>Aéronautique</option>
+            <option>Automobile</option>
+            <option>Électronique</option>
+            <option>Chimie</option>
+          </select>
+        </div>
+        <div class="fg">
+          <div class="fl">Responsable qualité</div>
+          <input class="fi" id="org-quality" placeholder="Nom du responsable qualité">
+        </div>
+        <div class="fg">
+          <div class="fl">Version du système qualité</div>
+          <input class="fi" id="org-qms" placeholder="Ex: QMS v2.1">
+        </div>
+      </div>
+      <div style="padding:10px 12px;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--r);font-size:12px;color:var(--green);">
+        Ces informations apparaissent automatiquement dans l'en-tête de toutes vos SOP exportées.
+      </div>
+    </div>
+
+    <!-- PANNEAU DÉPARTEMENTS -->
+    <div id="tab-dept" style="display:none;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
+        Départements proposés lors de la création d'un processus ou d'un poste. Les 8 départements industriels standards sont pré-chargés. Supprimez ceux qui ne correspondent pas, ajoutez les vôtres.
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input class="fi" id="dept-new" placeholder="Nouveau département... Ex: R&D" style="flex:1;">
+        <button class="btn btn-primary btn-sm" onclick="addItem('departments','dept-new','Département')">Ajouter</button>
+      </div>
+      <div id="list-departments"></div>
+    </div>
+
+    <!-- PANNEAU RÔLES -->
+    <div id="tab-role" style="display:none;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
+        Rôles utilisés dans la RACI (Module 2 — Processus) et l'organigramme (Module 1 — RH). Un poste peut avoir plusieurs rôles — c'est la base de votre matrice de polyvalence.
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input class="fi" id="role-new" placeholder="Nouveau rôle... Ex: Chef de projet" style="flex:1;">
+        <button class="btn btn-primary btn-sm" onclick="addItem('roles','role-new','Rôle')">Ajouter</button>
+      </div>
+      <!-- Rôles pré-établis suggestion -->
+      <div style="margin-bottom:10px;">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px;">Suggestions — cliquer pour ajouter</div>
+        <div id="role-suggestions" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+      </div>
+      <div id="list-roles"></div>
+    </div>
+
+    <!-- PANNEAU SITES -->
+    <div id="tab-site" style="display:none;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
+        Sites de production ou unités organisationnelles. Permettront d'associer des processus et des postes à des sites spécifiques.
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input class="fi" id="site-new" placeholder="Nouveau site... Ex: Usine Nord" style="flex:1;">
+        <button class="btn btn-primary btn-sm" onclick="addItem('sites','site-new','Site')">Ajouter</button>
+      </div>
+      <div id="list-sites"></div>
+    </div>
+
+    <!-- PANNEAU NORMES ISO -->
+    <div id="tab-norm" style="display:none;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
+        Sélectionne les normes actives dans ton organisation. Elles apparaissent dans les fiches SOP et le JSON universel de chaque processus.
+      </div>
+      <div id="list-norms" style="display:flex;flex-direction:column;gap:7px;"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div class="status-dot"></div>
+  <span>Module 0 — Paramètres globaux</span>
+  <span style="margin-left:auto;" id="stime"></span>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── INIT ──────────────────────────────────────────────────────────────────────
+applyTheme();
+injectSharedCSS();
+load();
+renderTopbar('module-0');
+loadFormValues();
+renderRoleSuggestions();
+
+// ── ONGLETS ───────────────────────────────────────────────────────────────────
+function showTab(id) {
+  ['org','dept','role','site','norm'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === id ? 'block' : 'none';
+    const tab = document.getElementById('stab-' + t);
+    tab.style.borderBottomColor = t === id ? 'var(--purple)' : 'transparent';
+    tab.style.color              = t === id ? 'var(--purple)' : 'var(--text3)';
+  });
+  if (id === 'dept') renderList('departments');
+  if (id === 'role') renderList('roles');
+  if (id === 'site') renderList('sites');
+  if (id === 'norm') renderNorms();
+}
+
+// ── CHARGEMENT DES VALEURS ────────────────────────────────────────────────────
+function loadFormValues() {
+  const s = getSettings();
+  document.getElementById('org-name').value    = s.org?.name    || '';
+  document.getElementById('org-sector').value  = s.org?.sector  || 'Industrie générale';
+  document.getElementById('org-quality').value = s.org?.quality || '';
+  document.getElementById('org-qms').value     = s.org?.qms     || '';
+}
+
+// ── SAUVEGARDE ────────────────────────────────────────────────────────────────
+function saveAll() {
+  const s = getSettings();
+  s.org = {
+    name:    document.getElementById('org-name').value.trim(),
+    sector:  document.getElementById('org-sector').value,
+    quality: document.getElementById('org-quality').value.trim(),
+    qms:     document.getElementById('org-qms').value.trim(),
+  };
+  s.activeNorms = Array.from(document.querySelectorAll('#list-norms input:checked')).map(i => i.value);
+  saveSettingsData(s);
+  showToast('Paramètres sauvegardés ✓');
+  document.getElementById('stime').textContent =
+    'Sauvegardé à ' + new Date().toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ── GESTION DES LISTES ────────────────────────────────────────────────────────
+function renderList(key) {
+  const s    = getSettings();
+  const items = s[key] || [];
+  const el   = document.getElementById('list-' + key.replace('departments','departments').replace('roles','roles').replace('sites','sites'));
+  if (!el) return;
+
+  if (!items.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px;text-align:center;background:var(--bg3);border-radius:var(--r);">Aucun élément — utilise les paramètres par défaut</div>';
+    return;
+  }
+  el.innerHTML = items.map((item, i) => `
+    <div style="display:flex;gap:8px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;margin-bottom:4px;">
+      <span style="flex:1;font-size:13px;color:var(--text);">${item}</span>
+      <button class="icon-btn danger" onclick="removeItem('${key}',${i})" title="Supprimer">✕</button>
+    </div>
+  `).join('');
+}
+
+function addItem(key, inputId, label) {
+  const input = document.getElementById(inputId);
+  const val   = input.value.trim();
+  if (!val) { input.focus(); return; }
+
+  const s = getSettings();
+  if (!s[key]) s[key] = [];
+  if (s[key].includes(val)) { showToast('Existe déjà'); return; }
+
+  s[key].push(val);
+  saveSettingsData(s);
+  input.value = '';
+  renderList(key);
+  showToast(label + ' "' + val + '" ajouté ✓');
+}
+
+function removeItem(key, idx) {
+  const s = getSettings();
+  if (!s[key]) return;
+  if (!confirm('Supprimer "' + s[key][idx] + '" ?')) return;
+  s[key].splice(idx, 1);
+  saveSettingsData(s);
+  renderList(key);
+  showToast('Supprimé');
+}
+
+// ── SUGGESTIONS DE RÔLES ─────────────────────────────────────────────────────
+function renderRoleSuggestions() {
+  const s        = getSettings();
+  const existing = s.roles || [];
+  // Montrer seulement les rôles pas encore ajoutés
+  const suggestions = ROLE_PRESETS.filter(r => !existing.includes(r)).slice(0, 12);
+  const el = document.getElementById('role-suggestions');
+  if (!el) return;
+  el.innerHTML = suggestions.map(r => `
+    <span onclick="addRoleFromSuggestion('${r.replace(/'/g,'\\\'')}')"
+      style="font-size:11px;padding:3px 9px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .15s;"
+      onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'"
+    >${r}</span>
+  `).join('');
+}
+
+function addRoleFromSuggestion(role) {
+  const s = getSettings();
+  if (!s.roles) s.roles = [];
+  if (s.roles.includes(role)) { showToast('Déjà présent'); return; }
+  s.roles.push(role);
+  saveSettingsData(s);
+  renderList('roles');
+  renderRoleSuggestions();
+  showToast('"' + role + '" ajouté ✓');
+}
+
+// ── NORMES ISO ────────────────────────────────────────────────────────────────
+function renderNorms() {
+  const s     = getSettings();
+  const active = s.activeNorms || [];
+  document.getElementById('list-norms').innerHTML = ISO_OPTS.map(o => `
+    <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;padding:9px 12px;border-radius:var(--r);border:1px solid ${active.includes(o.id)?'var(--purple)':'var(--border)'};background:${active.includes(o.id)?'var(--purple-light)':'var(--bg2)'};">
+      <input type="checkbox" value="${o.id}" ${active.includes(o.id)?'checked':''}
+        style="width:14px;height:14px;accent-color:var(--purple);margin-top:2px;flex-shrink:0;"
+        onchange="toggleNorm(this)">
+      <span style="font-size:12px;color:var(--text2);line-height:1.5;">${o.label}</span>
+    </label>
+  `).join('');
+}
+
+function toggleNorm(checkbox) {
+  const s = getSettings();
+  if (!s.activeNorms) s.activeNorms = [];
+  if (checkbox.checked) {
+    if (!s.activeNorms.includes(checkbox.value)) s.activeNorms.push(checkbox.value);
+  } else {
+    s.activeNorms = s.activeNorms.filter(n => n !== checkbox.value);
+  }
+  saveSettingsData(s);
+  renderNorms();
+  showToast('Normes mises à jour ✓');
+}
+
+// ── ÉCOUTER ENTER dans les champs d'ajout ────────────────────────────────────
+['dept-new','role-new','site-new'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const map = { 'dept-new': ['departments','Département'], 'role-new': ['roles','Rôle'], 'site-new': ['sites','Site'] };
+      addItem(...map[id]);
+    }
+  });
+});
+
+// Sauvegarder avec Ctrl+S / Cmd+S
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); saveAll(); }
+});
+</script>
+</body>
+</html>

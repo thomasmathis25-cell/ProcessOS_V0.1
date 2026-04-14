@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProcessOS</title>
+<script src="shared.js"></script>
+</head>
+<body>
+
+<!-- TOPBAR (remplie par shared.js → renderTopbar) -->
+<div id="topbar" class="topbar"></div>
+
+<!-- CONTENU PRINCIPAL -->
+<div style="flex:1;overflow-y:auto;">
+
+  <!-- HERO -->
+  <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:32px 40px 28px;box-shadow:var(--shadow);">
+    <div style="max-width:800px;margin:0 auto;">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:white;box-shadow:var(--shadow-md);">P</div>
+        <div>
+          <h1 style="font-size:20px;font-weight:500;color:var(--text);">ProcessOS</h1>
+          <div id="org-name-display" style="font-size:13px;color:var(--text3);"></div>
+        </div>
+      </div>
+      <div style="font-size:15px;color:var(--text2);line-height:1.6;max-width:600px;">
+        Décrivez vos processus une fois. Guidez vos équipes partout.<br>
+        <span style="font-size:13px;color:var(--text3);">Format JSON universel · Lisible par toute IA · Installation locale ou cloud</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS RAPIDES -->
+  <div style="max-width:800px;margin:24px auto 0;padding:0 40px;">
+    <div id="stats-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;"></div>
+
+    <!-- MODULES -->
+    <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px;">Modules disponibles</div>
+    <div id="modules-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:32px;"></div>
+
+    <!-- ACCÈS RAPIDE -->
+    <div id="quick-actions" style="display:none;">
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px;">Accès rapide</div>
+      <div id="recent-processes" style="display:flex;flex-direction:column;gap:6px;margin-bottom:24px;"></div>
+    </div>
+
+    <!-- ENCADRÉ IA -->
+    <div style="background:var(--purple-light);border:1px solid var(--purple-bg);border-radius:var(--r2);padding:14px 16px;margin-bottom:32px;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="font-size:20px;flex-shrink:0;">🤖</div>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--purple);margin-bottom:3px;">Couche IA universelle</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6;">Chaque processus génère un JSON structuré que toute IA peut lire et exploiter. Ouvrez une NC, rédigez un mail client, alertez le bon responsable — l'IA comprend le contexte métier de votre entreprise.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div class="status-dot"></div>
+  <span>ProcessOS — Données locales · Installation locale possible · JSON IA-Ready</span>
+  <span style="margin-left:auto;" id="stime"></span>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── INIT ──────────────────────────────────────────────────────────────────────
+applyTheme();
+injectSharedCSS();
+load();
+renderTopbar('index');
+renderHome();
+
+function renderHome() {
+  const s = getSettings();
+
+  // Nom organisation
+  const orgEl = document.getElementById('org-name-display');
+  if (s.org?.name) orgEl.textContent = s.org.name;
+
+  // Stats
+  const macros = db.macros?.length || 0;
+  const subs   = db.subs?.length   || 0;
+  const posts  = db.org?.posts?.length || 0;
+  const approved = [...(db.macros||[]),...(db.subs||[])].filter(p=>p.workflow?.state==='approved').length;
+
+  document.getElementById('stats-row').innerHTML = [
+    { label: 'Macro-processus', value: macros, color: 'purple' },
+    { label: 'Sous-processus',  value: subs,   color: 'teal'   },
+    { label: 'Postes RH',       value: posts,  color: 'blue'   },
+    { label: 'Approuvés',       value: approved, color: 'green' },
+  ].map(s => `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;box-shadow:var(--shadow);">
+      <div style="font-size:24px;font-weight:500;color:var(--${s.color});margin-bottom:3px;">${s.value}</div>
+      <div style="font-size:11px;color:var(--text3);">${s.label}</div>
+    </div>
+  `).join('');
+
+  // Modules
+  const moduleDefs = [
+    {
+      id: 'module-0',
+      icon: '⚙',
+      name: 'Paramètres',
+      desc: 'Organisation, départements, rôles, normes ISO actives',
+      color: 'purple',
+      file: 'module-0.html',
+      status: 'Disponible',
+    },
+    {
+      id: 'module-1',
+      icon: '👥',
+      name: 'RH & Organisation',
+      desc: 'Organigramme, postes, rôles, polyvalence, formations',
+      color: 'teal',
+      file: 'module-1.html',
+      status: 'Disponible',
+    },
+    {
+      id: 'module-2',
+      icon: '🔁',
+      name: 'Processus',
+      desc: 'Éditeur macro/sous-processus, RACI, gamme, workflow, JSON IA',
+      color: 'blue',
+      file: 'module-2.html',
+      status: 'Disponible',
+    },
+    {
+      id: 'module-3',
+      icon: '🏭',
+      name: 'Structure industrielle',
+      desc: 'Workcenters, centres de frais, machines, lignes',
+      color: 'amber',
+      file: null,
+      status: 'Prochainement',
+    },
+    {
+      id: 'module-4',
+      icon: '📋',
+      name: 'Articles & BOM',
+      desc: 'Base articles, nomenclature, gamme de fabrication, routing',
+      color: 'orange',
+      file: null,
+      status: 'Phase 1',
+    },
+    {
+      id: 'module-5',
+      icon: '📦',
+      name: 'Supply Chain',
+      desc: 'OF, ordonnancement, stocks, commandes, ADV, facturation',
+      color: 'green',
+      file: null,
+      status: 'Phase 2',
+    },
+  ];
+
+  document.getElementById('modules-grid').innerHTML = moduleDefs.map(m => `
+    <div onclick="${m.file ? `window.location='${m.file}'` : ''}"
+      style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;cursor:${m.file?'pointer':'default'};transition:all .15s;box-shadow:var(--shadow);opacity:${m.file?'1':'.6'};"
+      onmouseover="if('${m.file}')this.style.borderColor='var(--${m.color})'"
+      onmouseout="this.style.borderColor='var(--border)'">
+      <div style="font-size:20px;margin-bottom:6px;">${m.icon}</div>
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px;">${m.name}</div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.4;margin-bottom:6px;">${m.desc}</div>
+      <span style="font-size:10px;padding:1px 7px;border-radius:20px;font-weight:600;background:var(--${m.color}-bg,var(--bg3));color:var(--${m.color},var(--text3));">${m.status}</span>
+    </div>
+  `).join('');
+
+  // Accès rapide — derniers processus
+  const allProcs = [...(db.macros||[]),...(db.subs||[])];
+  if (allProcs.length > 0) {
+    document.getElementById('quick-actions').style.display = 'block';
+    const recent = allProcs.slice(-5).reverse();
+    document.getElementById('recent-processes').innerHTML = recent.map(p => {
+      const wfState = p.workflow?.state || 'draft';
+      const wfColors = { draft:'amber', submitted:'blue', approved:'green', rejected:'red' };
+      const wfLabels = { draft:'Brouillon', submitted:'En révision', approved:'Approuvé', rejected:'Rejeté' };
+      return `
+        <div onclick="window.location='module-2.html?id=${p._id}'"
+          style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .15s;"
+          onmouseover="this.style.borderColor='var(--purple)'"
+          onmouseout="this.style.borderColor='var(--border)'">
+          <div style="width:28px;height:28px;border-radius:6px;background:var(--${p.level==='macro'?'purple':'teal'}-bg);color:var(--${p.level==='macro'?'purple':'teal'});display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;">
+            ${p.level==='macro'?'M':'S'}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+            <div style="font-size:11px;color:var(--text3);">${p.id} · ${p.department} · ${p.steps?.length||0} étapes</div>
+          </div>
+          <span style="font-size:10px;padding:1px 7px;border-radius:20px;font-weight:600;background:var(--${wfColors[wfState]}-bg);color:var(--${wfColors[wfState]});white-space:nowrap;">${wfLabels[wfState]}</span>
+        </div>`;
+    }).join('');
+  }
+
+  // Heure
+  document.getElementById('stime').textContent =
+    'Chargé à ' + new Date().toLocaleTimeString('fr-CH', { hour:'2-digit', minute:'2-digit' });
+}
+</script>
+</body>
+</html>
