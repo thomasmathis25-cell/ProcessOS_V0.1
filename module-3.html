@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Structure industrielle — ProcessOS</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<style>
+.m3-wrap{display:flex;flex:1;overflow:hidden;height:calc(100vh - 76px);}
+/* SIDEBAR */
+.m3-sb{width:192px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;}
+.m3-sb-head{padding:10px 13px 7px;border-bottom:1px solid var(--border);background:var(--bg3);}
+.m3-sb-title{font-size:11px;font-weight:600;color:var(--text);}
+.m3-sb-sub{font-size:10px;color:var(--text3);}
+.m3-nav{padding:6px 5px;flex:1;overflow-y:auto;}
+.sec-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:6px 8px 2px;}
+.nav-item{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);transition:all .15s;margin-bottom:1px;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:var(--purple-bg);color:var(--purple);}
+.nav-cnt{margin-left:auto;font-size:10px;font-weight:600;padding:1px 5px;border-radius:10px;background:var(--bg3);color:var(--text3);}
+.nav-item.active .nav-cnt{background:var(--purple);color:white;}
+.sb-footer{padding:7px 8px;border-top:1px solid var(--border);}
+/* MAIN */
+.m3-main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.m3-toolbar{padding:9px 15px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px;flex-wrap:wrap;}
+.m3-body{flex:1;overflow-y:auto;padding:13px 15px;}
+/* CARDS */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:9px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;box-shadow:var(--shadow);}
+.card-h{padding:9px 12px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;}
+.card-b{padding:9px 12px;}
+.card-f{padding:6px 12px;border-top:1px solid var(--border);display:flex;gap:5px;justify-content:flex-end;}
+.card-title{font-size:13px;font-weight:500;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.card-code{font-size:10px;color:var(--text3);font-family:var(--mono);}
+.krow{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;}
+.klbl{color:var(--text3);}
+.kval{font-weight:500;color:var(--text);}
+.kval.g{color:var(--green);font-weight:600;}
+.kval.a{color:var(--amber);font-weight:600;}
+.kval.t{color:var(--teal);font-weight:600;}
+.kval.r{color:var(--red);font-weight:600;}
+/* STATUS */
+.st{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.st-active{background:var(--green);}
+.st-maintenance{background:var(--amber);}
+.st-inactive{background:var(--red);}
+/* ACTIVITÉS */
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;}
+.act{border-radius:var(--r);padding:9px 11px;border:1px solid;}
+.act.su{background:var(--amber-bg);border-color:var(--amber);}
+.act.ru{background:var(--teal-bg);border-color:var(--teal);}
+.act-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.act.su .act-lbl{color:var(--amber);}
+.act.ru .act-lbl{color:var(--teal);}
+.act-rate{font-size:17px;font-weight:600;color:var(--text);}
+.act-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+.act-total{font-size:11px;font-weight:600;margin-top:4px;padding-top:4px;border-top:1px dashed;}
+.act.su .act-total{color:var(--amber);border-color:var(--amber);}
+.act.ru .act-total{color:var(--teal);border-color:var(--teal);}
+/* TREE VIEW */
+.tree{padding:8px 0;}
+.tree-site{margin-bottom:12px;}
+.tree-site-head{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--blue-bg);border:1px solid var(--blue);border-radius:var(--r2);margin-bottom:5px;cursor:pointer;}
+.tree-site-name{font-size:13px;font-weight:600;color:var(--blue);}
+.tree-dept{margin-left:20px;margin-bottom:6px;}
+.tree-dept-head{display:flex;align-items:center;gap:7px;padding:7px 11px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:4px;}
+.tree-dept-name{font-size:12px;font-weight:500;color:var(--text);}
+.tree-group{margin-left:20px;margin-bottom:4px;}
+.tree-group-head{display:flex;align-items:center;gap:7px;padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:3px;}
+.tree-group-name{font-size:12px;font-weight:500;color:var(--text2);}
+.tree-wcs{margin-left:20px;display:flex;flex-direction:column;gap:2px;}
+.tree-wc{display:flex;align-items:center;gap:7px;padding:5px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);font-size:11px;cursor:pointer;transition:all .15s;}
+.tree-wc:hover{border-color:var(--purple);background:var(--purple-light);}
+.tree-wc-name{flex:1;font-weight:500;color:var(--text);}
+.tree-wc-rate{color:var(--green);font-weight:600;}
+.tree-connector{width:2px;height:14px;background:var(--border);margin-left:10px;}
+/* MISC */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.info{padding:8px 11px;border-radius:var(--r);font-size:11px;line-height:1.5;}
+.info-p{background:var(--purple-light);border:1px solid var(--purple-bg);color:var(--purple);}
+.info-t{background:var(--teal-bg);border:1px solid var(--teal);color:var(--teal);}
+.info-a{background:var(--amber-bg);border:1px solid var(--amber);color:var(--amber);}
+.box{padding:10px 12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);}
+.box-t{font-size:11px;font-weight:600;color:var(--text);margin-bottom:7px;}
+.empty{padding:28px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);}
+</style>
+</head>
+<body>
+
+<div id="topbar" class="topbar"></div>
+
+<div class="m3-wrap">
+
+  <!-- SIDEBAR -->
+  <div class="m3-sb">
+    <div class="m3-sb-head">
+      <div class="m3-sb-title">Structure industrielle</div>
+      <div class="m3-sb-sub">Module 3</div>
+    </div>
+    <div class="m3-nav">
+      <div class="sec-lbl">Visualisation</div>
+      <div class="nav-item" id="nav-tree" onclick="showSection('tree')">
+        🗺 Vue arborescente <span class="nav-cnt" id="cnt-tree">—</span>
+      </div>
+
+      <div class="sec-lbl" style="margin-top:5px;">Production</div>
+      <div class="nav-item active" id="nav-groups" onclick="showSection('groups')">
+        ⚙ Groupes WC <span class="nav-cnt" id="cnt-groups">0</span>
+      </div>
+      <div class="nav-item" id="nav-wcs" onclick="showSection('wcs')">
+        🏭 Workcenters <span class="nav-cnt" id="cnt-wcs">0</span>
+      </div>
+
+      <div class="sec-lbl" style="margin-top:5px;">Coûts humains</div>
+      <div class="nav-item" id="nav-cfs" onclick="showSection('cfs')">
+        👥 Centres de frais <span class="nav-cnt" id="cnt-cfs">0</span>
+      </div>
+      <div class="nav-item" id="nav-teams" onclick="showSection('teams')">
+        🕐 Modèles d'équipe <span class="nav-cnt" id="cnt-teams">0</span>
+      </div>
+    </div>
+    <div class="sb-footer">
+      <div style="font-size:10px;color:var(--text3);line-height:1.6;padding:0 3px;">
+        Sites · Départements<br>
+        → <a href="module-0.html" style="color:var(--purple);">⚙ Paramètres</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="m3-main">
+    <div class="m3-toolbar">
+      <div>
+        <div style="font-size:14px;font-weight:500;color:var(--text);" id="tb-title">Groupes de workcenters</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:1px;" id="tb-sub">Regroupement logique de machines similaires</div>
+      </div>
+      <div style="display:flex;gap:6px;" id="tb-actions"></div>
+    </div>
+    <div class="m3-body" id="m3-body"></div>
+  </div>
+
+</div>
+
+<div class="statusbar">
+  <div class="status-dot"></div>
+  <span>Module 3 — Structure industrielle · Sites et départements depuis ⚙ Module 0</span>
+  <span style="margin-left:auto;" id="stime"></span>
+</div>
+
+<!-- ═══ MODAL GROUPE ═══ -->
+<div class="modal-overlay" id="modal-g">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="g-title">Nouveau groupe</div><button class="icon-btn" onclick="cm('modal-g')">✕</button></div>
+    <div class="modal-body">
+      <div class="info info-p">Regroupement de machines similaires — Ex : Tours CNC · Presses · Montage · Soudure robotisée</div>
+      <div class="g2">
+        <div class="fg"><div class="fl">Code *</div><input class="fi" id="g-code" placeholder="Ex: GRP-CNC"></div>
+        <div class="fg"><div class="fl">Nom *</div><input class="fi" id="g-name" placeholder="Ex: Tours CNC"></div>
+      </div>
+      <div class="g2">
+        <div class="fg">
+          <div class="fl">Site <span style="font-weight:400;text-transform:none;">(depuis ⚙ M0)</span></div>
+          <select class="fi" id="g-site"></select>
+        </div>
+        <div class="fg">
+          <div class="fl">Département <span style="font-weight:400;text-transform:none;">(depuis ⚙ M0)</span></div>
+          <select class="fi" id="g-dept"></select>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fl">Icône</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px;" id="g-icons">
+          <span>🏭</span><span>⚙</span><span>🔧</span><span>🤖</span><span>🏗</span>
+          <span>🔩</span><span>⚡</span><span>🧪</span><span>📦</span><span>🔬</span><span>🔥</span>
+        </div>
+        <input type="hidden" id="g-icon" value="🏭">
+      </div>
+      <div class="fg"><div class="fl">Description</div><input class="fi" id="g-desc" placeholder="Description courte"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="g-del" style="display:none;margin-right:auto;" onclick="delGroup()">Supprimer</button>
+      <button class="btn" onclick="cm('modal-g')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveGroup()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL WORKCENTER ═══ -->
+<div class="modal-overlay" id="modal-wc">
+  <div class="modal modal-lg">
+    <div class="modal-header"><div class="modal-title" id="wc-title">Nouveau workcenter</div><button class="icon-btn" onclick="cm('modal-wc')">✕</button></div>
+    <div class="modal-body">
+      <div class="g2">
+        <div class="fg"><div class="fl">Code *</div><input class="fi" id="wc-code" placeholder="Ex: WC-CNC-01"></div>
+        <div class="fg"><div class="fl">Nom *</div><input class="fi" id="wc-name" placeholder="Ex: Tour CNC #1"></div>
+      </div>
+      <div class="g2">
+        <div class="fg"><div class="fl">Type</div>
+          <select class="fi" id="wc-type">
+            <option value="machine">Machine automatique</option>
+            <option value="manual">Poste manuel</option>
+            <option value="mixed">Mixte machine + opérateur</option>
+            <option value="robot">Robot / Automatisme</option>
+          </select>
+        </div>
+        <div class="fg"><div class="fl">Statut</div>
+          <select class="fi" id="wc-status">
+            <option value="active">Actif</option>
+            <option value="maintenance">En maintenance</option>
+            <option value="inactive">Inactif</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- RATTACHEMENT -->
+      <div class="box">
+        <div class="box-t">📍 Rattachement hiérarchique</div>
+        <div class="info info-a" style="margin-bottom:8px;">Un workcenter peut être rattaché à un groupe OU directement à un département.</div>
+        <div class="g2">
+          <div class="fg">
+            <div class="fl">Groupe de workcenters</div>
+            <select class="fi" id="wc-group" onchange="onWCGroupChange()">
+              <option value="">— Aucun groupe —</option>
+            </select>
+          </div>
+          <div class="fg">
+            <div class="fl">Département direct <span style="font-weight:400;text-transform:none;">(si pas de groupe)</span></div>
+            <select class="fi" id="wc-dept" onchange="onWCDeptChange()">
+              <option value="">— Aucun —</option>
+            </select>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:5px;">💡 Si un groupe est sélectionné, il prend la priorité — le département du groupe est utilisé.</div>
+      </div>
+
+      <!-- COÛT MACHINE -->
+      <div class="box">
+        <div class="box-t">💰 Coût d'immobilisation machine</div>
+        <div class="info info-a" style="margin-bottom:8px;">Amortissement + énergie + maintenance. Identique réglage et production — c'est le coût de la machine immobilisée.</div>
+        <div class="g2">
+          <div class="fg"><div class="fl">Taux horaire machine (CHF/h)</div><input class="fi" id="wc-rate" type="number" step="0.01" placeholder="Ex: 45.00" oninput="updateWCPreview()"></div>
+          <div class="fg"><div class="fl">Taux d'efficience (%)</div><input class="fi" id="wc-eff" type="number" step="1" min="1" max="100" value="85"></div>
+        </div>
+      </div>
+
+      <!-- ACTIVITÉS -->
+      <div class="box">
+        <div class="box-t">⚙ Activités (style SAP)</div>
+        <div class="g2">
+          <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--r);padding:9px 11px;">
+            <div style="font-size:10px;font-weight:600;color:var(--amber);margin-bottom:4px;">RÉGLAGE (Setup)</div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;margin-bottom:4px;"><input type="checkbox" id="wc-setup" checked style="accent-color:var(--amber);">Activité active</label>
+            <div style="font-size:10px;color:var(--text3);">Taux = Machine + CF Réglage</div>
+          </div>
+          <div style="background:var(--teal-bg);border:1px solid var(--teal);border-radius:var(--r);padding:9px 11px;">
+            <div style="font-size:10px;font-weight:600;color:var(--teal);margin-bottom:4px;">PRODUCTION (Run)</div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;margin-bottom:4px;"><input type="checkbox" id="wc-run" checked style="accent-color:var(--teal);">Activité active</label>
+            <div style="font-size:10px;color:var(--text3);">Taux = Machine + CF Production</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CF + ÉQUIPE -->
+      <div class="box">
+        <div class="box-t">👥 Centres de frais + modèle d'équipe</div>
+        <div class="info info-t" style="margin-bottom:8px;">Crée d'abord les CF dans la section dédiée, puis associe-les ici.</div>
+        <div class="g2" style="margin-bottom:8px;">
+          <div class="fg"><div class="fl">CF Réglage (coût MO régleur)</div><select class="fi" id="wc-cf-su"><option value="">— Aucun —</option></select></div>
+          <div class="fg"><div class="fl">CF Production (coût MO opérateur)</div><select class="fi" id="wc-cf-ru"><option value="">— Aucun —</option></select></div>
+        </div>
+        <div class="g2">
+          <div class="fg"><div class="fl">Modèle d'équipe</div><select class="fi" id="wc-team"><option value="">— Choisir —</option></select></div>
+          <div class="fg"><div class="fl">Notes calendrier</div><input class="fi" id="wc-cal" placeholder="Ex: Arrêt sem. 32"></div>
+        </div>
+        <!-- Aperçu coûts en temps réel -->
+        <div id="wc-cost-preview" style="margin-top:8px;padding:8px 10px;background:var(--bg2);border-radius:var(--r);border:1px solid var(--border);font-size:12px;"></div>
+      </div>
+
+      <div class="fg">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;color:var(--text2);">
+          <input type="checkbox" id="wc-bottleneck" style="width:14px;height:14px;accent-color:var(--red);">⚠ Goulot d'étranglement — priorité dans la planification
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="wc-del" style="display:none;margin-right:auto;" onclick="delWC()">Supprimer</button>
+      <button class="btn" onclick="cm('modal-wc')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveWC()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL CF ═══ -->
+<div class="modal-overlay" id="modal-cf">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="cf-title">Nouveau centre de frais</div><button class="icon-btn" onclick="cm('modal-cf')">✕</button></div>
+    <div class="modal-body">
+      <div class="info info-t">Le CF porte le coût humain (MO). Le workcenter porte le coût machine. Les deux se cumulent dans le prix de revient.</div>
+      <div class="g2">
+        <div class="fg"><div class="fl">Code *</div><input class="fi" id="cf-code" placeholder="Ex: CF-REGL-CNC"></div>
+        <div class="fg"><div class="fl">Nom *</div><input class="fi" id="cf-name" placeholder="Ex: Régleurs Tour CNC"></div>
+      </div>
+      <div class="box">
+        <div class="box-t">💰 Taux horaires MO chargés (salaire + charges sociales)</div>
+        <div class="g2">
+          <div class="fg">
+            <div class="fl">Taux réglage — régleur (CHF/h)</div>
+            <input class="fi" id="cf-su" type="number" step="0.01" placeholder="Ex: 65.00">
+            <div style="font-size:10px;color:var(--text3);margin-top:2px;">Coût chargé du régleur</div>
+          </div>
+          <div class="fg">
+            <div class="fl">Taux production — opérateur (CHF/h)</div>
+            <input class="fi" id="cf-ru" type="number" step="0.01" placeholder="Ex: 45.00">
+            <div style="font-size:10px;color:var(--text3);margin-top:2px;">Coût chargé de l'opérateur</div>
+          </div>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fl">Personnes associées <span style="font-weight:400;text-transform:none;">(postes depuis Module 1)</span></div>
+        <div id="cf-persons" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;min-height:20px;"></div>
+        <div style="display:flex;gap:6px;">
+          <select class="fi" id="cf-ps" style="flex:1;font-size:12px;"></select>
+          <select class="fi" id="cf-pr" style="width:120px;font-size:12px;">
+            <option value="setup">Réglage</option>
+            <option value="run">Production</option>
+            <option value="both">Les deux</option>
+          </select>
+          <button class="btn btn-sm" onclick="addPerson()">+</button>
+        </div>
+      </div>
+      <div class="fg"><div class="fl">Effectif</div><input class="fi" id="cf-head" type="number" value="1" min="1" style="width:80px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="cf-del" style="display:none;margin-right:auto;" onclick="delCF()">Supprimer</button>
+      <button class="btn" onclick="cm('modal-cf')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveCF()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL ÉQUIPE ═══ -->
+<div class="modal-overlay" id="modal-team">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="team-title">Modèle d'équipe</div><button class="icon-btn" onclick="cm('modal-team')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><div class="fl">Nom *</div><input class="fi" id="t-name" placeholder="Ex: 2×8h matin/après-midi" oninput="updTP()"></div>
+      <div class="g3">
+        <div class="fg"><div class="fl">Équipes/jour</div><input class="fi" id="t-sh" type="number" value="1" min="1" max="4" oninput="updTP()"></div>
+        <div class="fg"><div class="fl">Heures/équipe</div><input class="fi" id="t-h" type="number" value="8" min="1" max="12" step="0.5" oninput="updTP()"></div>
+        <div class="fg"><div class="fl">Jours/semaine</div><input class="fi" id="t-d" type="number" value="5" min="1" max="7" oninput="updTP()"></div>
+      </div>
+      <div id="tp" style="padding:9px 11px;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--r);font-size:12px;color:var(--green);"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="t-del" style="display:none;margin-right:auto;" onclick="delTeam()">Supprimer</button>
+      <button class="btn" onclick="cm('modal-team')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveTeam()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── ÉTAT ──────────────────────────────────────────────────────────────────────
+let st = { sites:[], groups:[], wcs:[], cfs:[], teams:[], links:[] };
+let ed = { g:null, wc:null, cf:null, team:null };
+let cfP = [];
+let curSec = 'groups';
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+applyTheme(); injectSharedCSS(); initSupabase();
+(async () => {
+  if (supa) {
+    const { data:{ session } } = await supa.auth.getSession();
+    if (session?.user) await onLoginSuccess(session.user);
+  }
+  await load();
+  renderTopbar('module-3');
+  await loadAll();
+  showSection('groups');
+  setupIcons();
+  updTP();
+})();
+
+// ── CHARGEMENT ────────────────────────────────────────────────────────────────
+async function loadAll() {
+  if (!isCloudMode()) return;
+  const [r1,r2,r3,r4,r5,r6] = await Promise.all([
+    supa.from('sites').select('*').eq('org_id',currentOrgId).order('sort_order'),
+    supa.from('workcenter_groups').select('*').eq('org_id',currentOrgId).order('sort_order'),
+    supa.from('workcenters').select('*').eq('org_id',currentOrgId).order('sort_order'),
+    supa.from('cost_centers').select('*').eq('org_id',currentOrgId).order('name'),
+    supa.from('team_models').select('*').eq('org_id',currentOrgId).order('name'),
+    supa.from('workcenter_cost_centers').select('*').eq('org_id',currentOrgId),
+  ]);
+  st.sites  = r1.data||[];
+  st.groups = r2.data||[];
+  st.wcs    = r3.data||[];
+  st.cfs    = r4.data||[];
+  st.teams  = r5.data||[];
+  st.links  = r6.data||[];
+  if (!st.teams.length) await mkDefaultTeams();
+  updCounts();
+}
+
+function updCounts() {
+  const s = getSettings();
+  const tot = st.sites.length||(s.sites||[]).length;
+  document.getElementById('cnt-tree').textContent    = tot + ' site' + (tot!==1?'s':'');
+  document.getElementById('cnt-groups').textContent  = st.groups.length;
+  document.getElementById('cnt-wcs').textContent     = st.wcs.length;
+  document.getElementById('cnt-cfs').textContent     = st.cfs.length;
+  document.getElementById('cnt-teams').textContent   = st.teams.length;
+}
+
+async function mkDefaultTeams() {
+  const defs = [
+    { name:'1×8h (journée)',         shifts_per_day:1, hours_per_shift:8,  days_per_week:5 },
+    { name:'2×8h (matin/après-midi)',shifts_per_day:2, hours_per_shift:8,  days_per_week:5 },
+    { name:'3×8h (3×8)',             shifts_per_day:3, hours_per_shift:8,  days_per_week:5 },
+    { name:'4×6h (feux continus)',   shifts_per_day:4, hours_per_shift:6,  days_per_week:7 },
+    { name:'2×12h',                  shifts_per_day:2, hours_per_shift:12, days_per_week:5 },
+  ];
+  for (const m of defs) await supa.from('team_models').insert({ org_id:currentOrgId, ...m });
+  const { data } = await supa.from('team_models').select('*').eq('org_id',currentOrgId);
+  st.teams = data||[];
+  showToast('Modèles d\'équipe standards créés ✓');
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+const SECS = {
+  tree:  { t:'Vue arborescente',        s:'Hiérarchie complète Site → Département → Groupe → Workcenter', btn:null },
+  groups:{ t:'Groupes de workcenters',  s:'Regroupement logique de machines similaires',        btn:'+ Nouveau groupe',    a:"omG()" },
+  wcs:   { t:'Workcenters',             s:'Machines et postes de travail',                       btn:'+ Nouveau workcenter',a:"omW()" },
+  cfs:   { t:'Centres de frais',        s:'Coût humain (MO) — associés aux workcenters',         btn:'+ Nouveau CF',        a:"omCF()" },
+  teams: { t:'Modèles d\'équipe',       s:'Capacité disponible — heures par jour',               btn:'+ Nouveau modèle',    a:"omT()" },
+};
+function showSection(sec) {
+  curSec = sec;
+  Object.keys(SECS).forEach(s => document.getElementById('nav-'+s)?.classList.toggle('active',s===sec));
+  const c = SECS[sec];
+  document.getElementById('tb-title').textContent = c.t;
+  document.getElementById('tb-sub').textContent   = c.s;
+  document.getElementById('tb-actions').innerHTML = c.btn
+    ? `<button class="btn btn-primary btn-sm" onclick="${c.a}">${c.btn}</button>` : '';
+  renderSec(sec);
+}
+function renderSec(sec) {
+  const el = document.getElementById('m3-body');
+  switch(sec) {
+    case 'tree':   el.innerHTML = renderTree();   break;
+    case 'groups': el.innerHTML = renderGroups(); break;
+    case 'wcs':    el.innerHTML = renderWCs();    break;
+    case 'cfs':    el.innerHTML = renderCFs();    break;
+    case 'teams':  el.innerHTML = renderTeams();  break;
+  }
+}
+
+// ── VUE ARBORESCENTE ──────────────────────────────────────────────────────────
+function renderTree() {
+  const s = getSettings();
+  const sites = st.sites.length ? st.sites : (s.sites||['Site principal']).map((n,i)=>({id:'s'+i,name:n,code:n.substring(0,4).toUpperCase(),is_main:i===0}));
+  const depts = s.departments || [];
+  const stLbl = {active:'Actif',maintenance:'Maintenance',inactive:'Inactif'};
+  const stCl  = {active:'green',maintenance:'amber',inactive:'red'};
+
+  if (!sites.length && !depts.length) return `<div class="empty"><div style="font-size:24px;margin-bottom:8px;">🗺</div><div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;">Structure vide</div><div style="font-size:12px;color:var(--text3);">Commence par configurer sites et départements dans <a href="module-0.html" style="color:var(--purple);">⚙ Paramètres</a></div></div>`;
+
+  // Stats résumé
+  const totalSetup = st.wcs.reduce((acc,w) => {
+    const links = st.links.filter(l=>l.workcenter_id===w.id);
+    const cf = st.cfs.find(c=>links.find(l=>l.cost_center_id===c.id&&(l.activity==='setup'||l.activity==='both')));
+    return acc + (w.hourly_rate||0) + (cf?.rate_setup||0);
+  }, 0);
+
+  let html = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
+    ${[['Sites',sites.length,'blue'],['Groupes',st.groups.length,'purple'],['Workcenters',st.wcs.length,'teal'],['Centres de frais',st.cfs.length,'green']].map(([l,v,c])=>`
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 13px;box-shadow:var(--shadow);">
+      <div style="font-size:20px;font-weight:500;color:var(--${c});margin-bottom:1px;">${v}</div>
+      <div style="font-size:11px;color:var(--text3);">${l}</div>
+    </div>`).join('')}
+  </div><div class="tree">`;
+
+  // Par site
+  sites.forEach(site => {
+    const siteGroups = st.groups.filter(g => g.site_id === site.id);
+    // WC rattachés directement au site (sans groupe) — via department direct
+    const directWCs = st.wcs.filter(w => !w.group_id && w.department_id);
+
+    html += `<div class="tree-site">
+      <div class="tree-site-head" onclick="showSection('groups')">
+        <span style="font-size:18px;">🏢</span>
+        <div style="flex:1;">
+          <span class="tree-site-name">${site.name}</span>
+          ${site.is_main?'<span style="font-size:9px;padding:1px 5px;border-radius:20px;background:white;color:var(--blue);font-weight:600;margin-left:6px;opacity:.8;">Principal</span>':''}
+        </div>
+        <span style="font-size:11px;color:var(--blue);opacity:.7;">${siteGroups.length} groupe(s) · ${siteGroups.reduce((a,g)=>a+st.wcs.filter(w=>w.group_id===g.id).length,0)} WC</span>
+      </div>`;
+
+    // Par département
+    depts.forEach(dept => {
+      const preset = DEPT_PRESETS.find(p=>p.name===dept);
+      const deptId = preset?.id || dept;
+      const deptGroups = siteGroups.filter(g => g.department_id === deptId || g.department_id === dept);
+      if (!deptGroups.length) return;
+
+      html += `<div class="tree-dept">
+        <div class="tree-dept-head">
+          <span style="font-size:16px;">${preset?.icon||'🏢'}</span>
+          <span class="tree-dept-name">${dept}</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--text3);">${deptGroups.length} groupe(s)</span>
+        </div>`;
+
+      deptGroups.forEach(g => {
+        const gWCs = st.wcs.filter(w => w.group_id === g.id);
+        html += `<div class="tree-group">
+          <div class="tree-group-head">
+            <span style="font-size:15px;">${g.icon||'⚙'}</span>
+            <span class="tree-group-name">${g.name}</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--text3);">${gWCs.length} WC · <button onclick="omWForG('${g.id}')" class="btn btn-sm" style="padding:1px 6px;font-size:10px;">+ WC</button></span>
+          </div>`;
+
+        if (gWCs.length) {
+          html += `<div class="tree-wcs">`;
+          gWCs.forEach(w => {
+            const links  = st.links.filter(l=>l.workcenter_id===w.id);
+            const cfSetup= st.cfs.find(c=>links.find(l=>l.cost_center_id===c.id&&(l.activity==='setup'||l.activity==='both')));
+            const cfRun  = st.cfs.find(c=>links.find(l=>l.cost_center_id===c.id&&(l.activity==='run'  ||l.activity==='both')));
+            const tSetup = (w.hourly_rate||0) + (cfSetup?.rate_setup||0);
+            const tRun   = (w.hourly_rate||0) + (cfRun?.rate_production||0);
+            const team   = st.teams.find(t=>t.id===w.team_model_id);
+            html += `<div class="tree-wc" onclick="edWC('${w.id}')">
+              <div class="st st-${w.status||'active'}"></div>
+              <div class="tree-wc-name">${w.name} <span style="font-size:10px;color:var(--text3);font-family:var(--mono);">${w.code}</span></div>
+              ${w.is_bottleneck?'<span style="font-size:9px;color:var(--red);">⚠</span>':''}
+              <span style="font-size:10px;color:var(--amber);">Régl: ${tSetup.toFixed(0)}</span>
+              <span style="font-size:10px;color:var(--teal);">Prod: ${tRun.toFixed(0)} CHF/h</span>
+              ${team?`<span style="font-size:10px;color:var(--text3);">${team.name}</span>`:''}
+            </div>`;
+          });
+          html += `</div>`;
+        } else {
+          html += `<div style="margin-left:20px;font-size:11px;color:var(--text3);padding:4px 8px;font-style:italic;">Aucun workcenter — <span onclick="omWForG('${g.id}')" style="color:var(--purple);cursor:pointer;text-decoration:underline;">+ en ajouter un</span></div>`;
+        }
+        html += `</div>`; // tree-group
+      });
+
+      html += `</div>`; // tree-dept
+    });
+
+    // WC sans groupe ni département
+    const orphanWCs = st.wcs.filter(w => !w.group_id && !w.department_id && st.groups.some(g=>g.site_id===site.id));
+    if (orphanWCs.length) {
+      html += `<div class="tree-dept"><div class="tree-dept-head"><span style="font-size:16px;">📋</span><span class="tree-dept-name" style="color:var(--amber);">Sans groupe ni département</span></div>
+        <div class="tree-wcs">${orphanWCs.map(w=>`<div class="tree-wc" onclick="edWC('${w.id}')"><div class="st st-${w.status||'active'}"></div><span class="tree-wc-name">${w.name}</span><span style="font-size:10px;color:var(--amber);">⚠ Non classifié</span></div>`).join('')}</div></div>`;
+    }
+
+    html += `</div>`; // tree-site
+  });
+
+  // WC sans site (pas de groupe ou groupe sans site)
+  const noSiteWCs = st.wcs.filter(w => {
+    if (!w.group_id) return true;
+    const g = st.groups.find(x=>x.id===w.group_id);
+    return !g?.site_id;
+  });
+  if (noSiteWCs.length) {
+    html += `<div class="tree-site"><div class="tree-site-head" style="background:var(--amber-bg);border-color:var(--amber);">
+      <span style="font-size:18px;">⚠</span><span class="tree-site-name" style="color:var(--amber);">Workcenters sans site</span></div>
+      <div class="tree-wcs" style="margin-left:20px;">${noSiteWCs.map(w=>`<div class="tree-wc" onclick="edWC('${w.id}')"><div class="st st-${w.status||'active'}"></div><span class="tree-wc-name">${w.name}</span><span style="font-size:10px;color:var(--amber);">Assigner un groupe/site</span></div>`).join('')}</div></div>`;
+  }
+
+  html += '</div>'; // tree
+  return html;
+}
+
+// ── GROUPES ───────────────────────────────────────────────────────────────────
+function renderGroups() {
+  if (!st.groups.length) return `<div class="empty"><div style="font-size:24px;margin-bottom:8px;">⚙</div><div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;">Aucun groupe</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px;">Crée des groupes pour regrouper tes machines similaires.<br>Ex: Tours CNC · Presses · Montage manuel</div><button class="btn btn-primary" onclick="omG()">+ Créer un groupe</button></div>`;
+  return `<div class="grid">${st.groups.map(g => {
+    const site = st.sites.find(s=>s.id===g.site_id);
+    const s    = getSettings();
+    const deptName = s.departments?.find(d => {
+      const preset = DEPT_PRESETS.find(p=>p.name===d);
+      return (preset?.id||d) === g.department_id;
+    }) || g.department_id || '—';
+    const wcs = st.wcs.filter(w=>w.group_id===g.id);
+    return `<div class="card">
+      <div class="card-h"><span style="font-size:18px;">${g.icon||'⚙'}</span><div><div class="card-title">${g.name}</div><div class="card-code">${g.code}</div></div></div>
+      <div class="card-b">
+        <div class="krow"><span class="klbl">Site</span><span class="kval">${site?.name||'—'}</span></div>
+        <div class="krow"><span class="klbl">Département</span><span class="kval">${deptName}</span></div>
+        <div class="krow"><span class="klbl">Workcenters</span><span class="kval">${wcs.length}</span></div>
+        ${g.description?`<div style="font-size:11px;color:var(--text3);margin-top:4px;">${g.description}</div>`:''}
+      </div>
+      <div class="card-f">
+        <button class="btn btn-sm" onclick="edG('${g.id}')">✎ Modifier</button>
+        <button class="btn btn-primary btn-sm" onclick="omWForG('${g.id}')">+ Workcenter</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── WORKCENTERS ───────────────────────────────────────────────────────────────
+function renderWCs() {
+  if (!st.wcs.length) return `<div class="empty"><div style="font-size:24px;margin-bottom:8px;">🏭</div><div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;">Aucun workcenter</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px;">Crée tes machines et postes de travail.</div><button class="btn btn-primary" onclick="omW()">+ Créer un workcenter</button></div>`;
+  const tLbl = {machine:'Machine',manual:'Manuel',mixed:'Mixte',robot:'Robot'};
+  return `<div style="display:flex;flex-direction:column;gap:9px;">${st.wcs.map(w => {
+    const group  = st.groups.find(g=>g.id===w.group_id);
+    const team   = st.teams.find(t=>t.id===w.team_model_id);
+    const links  = st.links.filter(l=>l.workcenter_id===w.id);
+    const cfSu   = st.cfs.find(c=>links.find(l=>l.cost_center_id===c.id&&(l.activity==='setup'||l.activity==='both')));
+    const cfRu   = st.cfs.find(c=>links.find(l=>l.cost_center_id===c.id&&(l.activity==='run'  ||l.activity==='both')));
+    const mr     = w.hourly_rate||0;
+    const tSu    = mr + (cfSu?.rate_setup||0);
+    const tRu    = mr + (cfRu?.rate_production||0);
+    const s = getSettings();
+    const deptName = w.department_id ? (s.departments?.find(d=>{const p=DEPT_PRESETS.find(x=>x.name===d);return(p?.id||d)===w.department_id;})||w.department_id) : null;
+    return `<div class="card">
+      <div class="card-h">
+        <div class="st st-${w.status||'active'}"></div>
+        <div style="flex:1;"><div class="card-title">${w.name}${w.is_bottleneck?'<span style="font-size:9px;color:var(--red);margin-left:5px;">⚠ Goulot</span>':''}</div><div class="card-code">${w.code} · ${tLbl[w.wc_type]||''}</div></div>
+        <span class="pill pill-${({active:'green',maintenance:'amber',inactive:'red'})[w.status||'active']}">${({active:'Actif',maintenance:'Maintenance',inactive:'Inactif'})[w.status||'active']}</span>
+      </div>
+      <div class="card-b">
+        <div class="acts">
+          <div class="act su">
+            <div class="act-lbl">⚙ Réglage</div>
+            <div class="act-rate">${mr.toFixed(2)} <span style="font-size:10px;font-weight:400;color:var(--text3);">CHF/h mach.</span></div>
+            ${cfSu?`<div class="act-sub">+ ${cfSu.name}: ${(cfSu.rate_setup||0).toFixed(2)}</div><div class="act-total">= ${tSu.toFixed(2)} CHF/h</div>`:'<div class="act-sub">Pas de CF réglage</div>'}
+          </div>
+          <div class="act ru">
+            <div class="act-lbl">▶ Production</div>
+            <div class="act-rate">${mr.toFixed(2)} <span style="font-size:10px;font-weight:400;color:var(--text3);">CHF/h mach.</span></div>
+            ${cfRu?`<div class="act-sub">+ ${cfRu.name}: ${(cfRu.rate_production||0).toFixed(2)}</div><div class="act-total">= ${tRu.toFixed(2)} CHF/h</div>`:'<div class="act-sub">Pas de CF production</div>'}
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);">
+          ${group?`Groupe : <strong>${group.name}</strong>`:deptName?`Dept : <strong>${deptName}</strong>`:'<span style="color:var(--amber);">⚠ Non classifié</span>'}
+          · Eff. : <strong>${((w.efficiency_rate||0.85)*100).toFixed(0)}%</strong>
+          ${team?`· ${team.name} · ${((team.shifts_per_day||1)*(team.hours_per_shift||8)).toFixed(0)}h/j`:''}
+        </div>
+      </div>
+      <div class="card-f"><button class="btn btn-sm" onclick="edWC('${w.id}')">✎ Modifier</button></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── CFs ───────────────────────────────────────────────────────────────────────
+function renderCFs() {
+  if (!st.cfs.length) return `<div class="empty"><div style="font-size:24px;margin-bottom:8px;">👥</div><div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;">Aucun centre de frais</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px;">Les CF portent le coût MO — crée-les puis associe-les aux workcenters.</div><button class="btn btn-primary" onclick="omCF()">+ Créer un CF</button></div>`;
+  return `<div class="grid">${st.cfs.map(cf => {
+    const persons = typeof cf.persons==='string'?JSON.parse(cf.persons||'[]'):(cf.persons||[]);
+    const linked  = st.links.filter(l=>l.cost_center_id===cf.id).map(l=>st.wcs.find(w=>w.id===l.workcenter_id)?.name).filter(Boolean);
+    return `<div class="card">
+      <div class="card-h"><span style="font-size:18px;">👥</span><div><div class="card-title">${cf.name}</div><div class="card-code">${cf.code}</div></div></div>
+      <div class="card-b">
+        <div class="krow"><span class="klbl">Taux réglage</span><span class="kval a">${(cf.rate_setup||0).toFixed(2)} CHF/h</span></div>
+        <div class="krow"><span class="klbl">Taux production</span><span class="kval t">${(cf.rate_production||0).toFixed(2)} CHF/h</span></div>
+        <div class="krow"><span class="klbl">Effectif</span><span class="kval">${cf.headcount||1} pers.</span></div>
+        ${persons.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;">${persons.map(p=>`<span style="font-size:10px;padding:1px 6px;border-radius:20px;background:var(--blue-bg);color:var(--blue);">👤 ${p.name}</span>`).join('')}</div>`:''}
+        ${linked.length?`<div style="font-size:10px;color:var(--text3);margin-top:5px;">Lié : ${linked.join(', ')}</div>`:`<div style="font-size:10px;color:var(--amber);margin-top:4px;">⚠ Non associé à un WC</div>`}
+      </div>
+      <div class="card-f"><button class="btn btn-sm" onclick="edCF('${cf.id}')">✎ Modifier</button></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── ÉQUIPES ───────────────────────────────────────────────────────────────────
+function renderTeams() {
+  return `<div class="info info-p" style="margin-bottom:10px;">Modèles d'équipe — définissent la capacité disponible de chaque workcenter (h/jour, h/semaine).</div>
+  <div class="grid">${st.teams.map(t => {
+    const hD = (t.shifts_per_day||1)*(t.hours_per_shift||8);
+    const hW = hD*(t.days_per_week||5);
+    const wcs = st.wcs.filter(w=>w.team_model_id===t.id).length;
+    return `<div class="card">
+      <div class="card-h"><span style="font-size:18px;">🕐</span><div class="card-title">${t.name}</div></div>
+      <div class="card-b">
+        <div class="krow"><span class="klbl">Équipes/jour</span><span class="kval">${t.shifts_per_day}</span></div>
+        <div class="krow"><span class="klbl">Heures/équipe</span><span class="kval">${t.hours_per_shift}h</span></div>
+        <div class="krow"><span class="klbl">Jours/semaine</span><span class="kval">${t.days_per_week}j</span></div>
+        <div class="krow"><span class="klbl">Capacité/jour</span><span class="kval g">${hD}h</span></div>
+        <div class="krow"><span class="klbl">Capacité/semaine</span><span class="kval g">${hW}h</span></div>
+        <div class="krow"><span class="klbl">Utilisé par</span><span class="kval">${wcs} WC</span></div>
+      </div>
+      <div class="card-f"><button class="btn btn-sm" onclick="edTeam('${t.id}')">✎ Modifier</button></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── HELPERS MODALS ────────────────────────────────────────────────────────────
+function getDepts() {
+  const s = getSettings();
+  return (s.departments||[]).map(d => {
+    const p = DEPT_PRESETS.find(x=>x.name===d);
+    return { id: p?.id||d, name: d, icon: p?.icon||'🏢' };
+  });
+}
+
+// ── MODAL GROUPE ──────────────────────────────────────────────────────────────
+function omG()     { openG(null); }
+function edG(id)   { openG(id);   }
+function openG(id) {
+  ed.g = id;
+  const g = id ? st.groups.find(x=>x.id===id) : null;
+  document.getElementById('g-title').textContent = id ? 'Modifier le groupe' : 'Nouveau groupe';
+  document.getElementById('g-code').value = g?.code||'';
+  document.getElementById('g-name').value = g?.name||'';
+  document.getElementById('g-desc').value = g?.description||'';
+  document.getElementById('g-icon').value = g?.icon||'🏭';
+  document.getElementById('g-del').style.display = id?'':'none';
+  // Sites depuis Supabase
+  document.getElementById('g-site').innerHTML =
+    '<option value="">— Choisir un site —</option>' +
+    st.sites.map(s=>`<option value="${s.id}" ${g?.site_id===s.id?'selected':''}>${s.name}</option>`).join('');
+  // Départements depuis Module 0
+  document.getElementById('g-dept').innerHTML =
+    '<option value="">— Choisir un département —</option>' +
+    getDepts().map(d=>`<option value="${d.id}" ${g?.department_id===d.id?'selected':''}>${d.icon} ${d.name}</option>`).join('');
+  om('modal-g');
+  setTimeout(()=>document.getElementById('g-code').focus(),100);
+}
+async function saveGroup() {
+  const code = document.getElementById('g-code').value.trim();
+  const name = document.getElementById('g-name').value.trim();
+  if (!code||!name) { showToast('Code et nom requis'); return; }
+  const data = {
+    org_id:        currentOrgId,
+    code, name,
+    site_id:       document.getElementById('g-site').value || null,
+    department_id: document.getElementById('g-dept').value || null, // TEXT — stocke l'id ou le nom
+    icon:          document.getElementById('g-icon').value || '🏭',
+    description:   document.getElementById('g-desc').value || null,
+  };
+  let err;
+  if (ed.g) { ({ error:err } = await supa.from('workcenter_groups').update(data).eq('id',ed.g)); }
+  else      { ({ error:err } = await supa.from('workcenter_groups').insert(data)); }
+  if (err) { showToast('Erreur : '+err.message); console.error(err); return; }
+  await loadAll(); cm('modal-g'); renderSec(curSec);
+  showToast('Groupe sauvegardé ✓');
+}
+async function delGroup() {
+  if (!confirm('Supprimer ce groupe ?')) return;
+  await supa.from('workcenter_groups').delete().eq('id',ed.g);
+  await loadAll(); cm('modal-g'); renderSec(curSec);
+}
+
+// ── MODAL WORKCENTER ──────────────────────────────────────────────────────────
+function omW()           { openW(null, null); }
+function omWForG(gId)    { openW(null, gId);  }
+function edWC(id)        { openW(id, null);   }
+function openW(wcId, groupId) {
+  ed.wc = wcId;
+  const w = wcId ? st.wcs.find(x=>x.id===wcId) : null;
+  document.getElementById('wc-title').textContent = wcId ? 'Modifier le workcenter' : 'Nouveau workcenter';
+  document.getElementById('wc-code').value = w?.code||'';
+  document.getElementById('wc-name').value = w?.name||'';
+  document.getElementById('wc-type').value = w?.wc_type||'machine';
+  document.getElementById('wc-status').value = w?.status||'active';
+  document.getElementById('wc-rate').value   = w?.hourly_rate||'';
+  document.getElementById('wc-eff').value    = w ? Math.round((w.efficiency_rate||0.85)*100) : 85;
+  document.getElementById('wc-cal').value    = w?.calendar_notes||'';
+  document.getElementById('wc-bottleneck').checked = w?.is_bottleneck||false;
+  document.getElementById('wc-setup').checked = w ? w.setup_enabled!==false : true;
+  document.getElementById('wc-run').checked   = w ? w.run_enabled!==false   : true;
+  document.getElementById('wc-del').style.display = wcId?'':'none';
+  // Groupes
+  document.getElementById('wc-group').innerHTML =
+    '<option value="">— Aucun groupe —</option>' +
+    st.groups.map(g=>`<option value="${g.id}" ${(w?.group_id||groupId)===g.id?'selected':''}>${g.icon||'⚙'} ${g.name}</option>`).join('');
+  // Départements (si pas de groupe)
+  document.getElementById('wc-dept').innerHTML =
+    '<option value="">— Aucun —</option>' +
+    getDepts().map(d=>`<option value="${d.id}" ${w?.department_id===d.id?'selected':''}>${d.icon} ${d.name}</option>`).join('');
+  // Teams
+  document.getElementById('wc-team').innerHTML = '<option value="">— Choisir —</option>' +
+    st.teams.map(t=>`<option value="${t.id}" ${w?.team_model_id===t.id?'selected':''}>${t.name} · ${((t.shifts_per_day||1)*(t.hours_per_shift||8)).toFixed(0)}h/j</option>`).join('');
+  // CFs
+  const cfO = '<option value="">— Aucun —</option>' +
+    st.cfs.map(c=>`<option value="${c.id}">${c.name} (R:${(c.rate_setup||0).toFixed(0)}/P:${(c.rate_production||0).toFixed(0)} CHF/h)</option>`).join('');
+  document.getElementById('wc-cf-su').innerHTML = cfO;
+  document.getElementById('wc-cf-ru').innerHTML = cfO;
+  // Pré-sélectionner CF existants
+  if (wcId) {
+    const links = st.links.filter(l=>l.workcenter_id===wcId);
+    links.forEach(l => {
+      if (l.activity==='setup'||l.activity==='both') document.getElementById('wc-cf-su').value = l.cost_center_id;
+      if (l.activity==='run'  ||l.activity==='both') document.getElementById('wc-cf-ru').value = l.cost_center_id;
+    });
+  }
+  updateWCPreview();
+  om('modal-wc');
+  setTimeout(()=>document.getElementById('wc-code').focus(),100);
+}
+
+function onWCGroupChange() {
+  const val = document.getElementById('wc-group').value;
+  if (val) document.getElementById('wc-dept').value = ''; // si groupe sélectionné, vider dept direct
+}
+function onWCDeptChange() {
+  const val = document.getElementById('wc-dept').value;
+  if (val) document.getElementById('wc-group').value = ''; // si dept direct sélectionné, vider groupe
+}
+
+function updateWCPreview() {
+  const rate    = parseFloat(document.getElementById('wc-rate')?.value)||0;
+  const cfSuId  = document.getElementById('wc-cf-su')?.value;
+  const cfRuId  = document.getElementById('wc-cf-ru')?.value;
+  const cfSu    = st.cfs.find(c=>c.id===cfSuId);
+  const cfRu    = st.cfs.find(c=>c.id===cfRuId);
+  const tSu     = rate + (cfSu?.rate_setup||0);
+  const tRu     = rate + (cfRu?.rate_production||0);
+  const el      = document.getElementById('wc-cost-preview');
+  if (!el) return;
+  el.innerHTML = `<div style="display:flex;gap:16px;flex-wrap:wrap;">
+    <span>⚙ Réglage : <strong style="color:var(--amber);">${tSu.toFixed(2)} CHF/h</strong> = ${rate.toFixed(2)} mach. ${cfSu?'+ '+cfSu.rate_setup.toFixed(2)+' MO':''}</span>
+    <span>▶ Production : <strong style="color:var(--teal);">${tRu.toFixed(2)} CHF/h</strong> = ${rate.toFixed(2)} mach. ${cfRu?'+ '+cfRu.rate_production.toFixed(2)+' MO':''}</span>
+  </div>`;
+}
+
+async function saveWC() {
+  const code = document.getElementById('wc-code').value.trim();
+  const name = document.getElementById('wc-name').value.trim();
+  if (!code||!name) { showToast('Code et nom requis'); return; }
+  const groupId = document.getElementById('wc-group').value || null;
+  const deptId  = document.getElementById('wc-dept').value  || null;
+  const data = {
+    org_id: currentOrgId, code, name,
+    group_id:       groupId,
+    department_id:  groupId ? null : deptId, // si groupe sélectionné, pas de dept direct
+    wc_type:        document.getElementById('wc-type').value,
+    status:         document.getElementById('wc-status').value,
+    hourly_rate:    parseFloat(document.getElementById('wc-rate').value)||0,
+    efficiency_rate:(parseInt(document.getElementById('wc-eff').value)||85)/100,
+    setup_enabled:  document.getElementById('wc-setup').checked,
+    run_enabled:    document.getElementById('wc-run').checked,
+    is_bottleneck:  document.getElementById('wc-bottleneck').checked,
+    team_model_id:  document.getElementById('wc-team').value||null,
+    calendar_notes: document.getElementById('wc-cal').value||null,
+    updated_at:     new Date().toISOString(),
+  };
+  let wcId = ed.wc, err;
+  if (wcId) { ({ error:err } = await supa.from('workcenters').update(data).eq('id',wcId)); }
+  else {
+    const { data:ins, error:e } = await supa.from('workcenters').insert(data).select().single();
+    err = e; wcId = ins?.id;
+  }
+  if (err) { showToast('Erreur : '+err.message); console.error(err); return; }
+  // Liens CF
+  if (wcId) {
+    await supa.from('workcenter_cost_centers').delete().eq('workcenter_id',wcId);
+    const su = document.getElementById('wc-cf-su').value;
+    const ru = document.getElementById('wc-cf-ru').value;
+    if (su && su===ru) await supa.from('workcenter_cost_centers').insert({ org_id:currentOrgId, workcenter_id:wcId, cost_center_id:su, activity:'both' });
+    else {
+      if (su) await supa.from('workcenter_cost_centers').insert({ org_id:currentOrgId, workcenter_id:wcId, cost_center_id:su, activity:'setup' });
+      if (ru) await supa.from('workcenter_cost_centers').insert({ org_id:currentOrgId, workcenter_id:wcId, cost_center_id:ru, activity:'run' });
+    }
+  }
+  await loadAll(); cm('modal-wc'); renderSec(curSec);
+  showToast('Workcenter sauvegardé ✓');
+}
+async function delWC() {
+  if (!confirm('Supprimer ce workcenter ?')) return;
+  await supa.from('workcenters').delete().eq('id',ed.wc);
+  await loadAll(); cm('modal-wc'); renderSec(curSec);
+}
+
+// ── MODAL CF ──────────────────────────────────────────────────────────────────
+function omCF()  { openCF(null); }
+function edCF(id){ openCF(id);   }
+function openCF(id) {
+  ed.cf = id; cfP = [];
+  const cf = id ? st.cfs.find(x=>x.id===id) : null;
+  document.getElementById('cf-title').textContent = id ? 'Modifier le CF' : 'Nouveau centre de frais';
+  document.getElementById('cf-code').value = cf?.code||'';
+  document.getElementById('cf-name').value = cf?.name||'';
+  document.getElementById('cf-su').value   = cf?.rate_setup||'';
+  document.getElementById('cf-ru').value   = cf?.rate_production||'';
+  document.getElementById('cf-head').value = cf?.headcount||1;
+  document.getElementById('cf-del').style.display = id?'':'none';
+  if (cf?.persons) cfP = typeof cf.persons==='string'?JSON.parse(cf.persons):(cf.persons||[]);
+  renderPersons();
+  document.getElementById('cf-ps').innerHTML = '<option value="">— Choisir un poste —</option>' +
+    (db.org?.posts||[]).map(p=>`<option value="${p.id}">${p.name}${p.person?' · '+p.person:''}</option>`).join('');
+  om('modal-cf');
+  setTimeout(()=>document.getElementById('cf-code').focus(),100);
+}
+function addPerson() {
+  const sel  = document.getElementById('cf-ps');
+  const id   = sel.value;
+  const name = sel.options[sel.selectedIndex]?.text;
+  const role = document.getElementById('cf-pr').value;
+  if (!id) return;
+  if (cfP.find(p=>p.id===id)) { showToast('Déjà ajouté'); return; }
+  cfP.push({ id, name, role });
+  renderPersons();
+}
+function rmPerson(id) { cfP=cfP.filter(p=>p.id!==id); renderPersons(); }
+function renderPersons() {
+  document.getElementById('cf-persons').innerHTML = cfP.map(p=>`
+    <div style="display:flex;gap:6px;align-items:center;padding:5px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);">
+      <span style="flex:1;font-size:12px;">👤 ${p.name} · <span style="color:var(--text3);font-size:11px;">${p.role==='setup'?'Réglage':p.role==='run'?'Production':'Les deux'}</span></span>
+      <button class="icon-btn danger" onclick="rmPerson(${JSON.stringify(p.id)})">✕</button>
+    </div>`).join('') || '<div style="font-size:11px;color:var(--text3);">Aucune personne assignée</div>';
+}
+async function saveCF() {
+  const code = document.getElementById('cf-code').value.trim();
+  const name = document.getElementById('cf-name').value.trim();
+  if (!code||!name) { showToast('Code et nom requis'); return; }
+  const data = { org_id:currentOrgId, code, name,
+    rate_setup:      parseFloat(document.getElementById('cf-su').value)||0,
+    rate_production: parseFloat(document.getElementById('cf-ru').value)||0,
+    headcount:       parseInt(document.getElementById('cf-head').value)||1,
+    persons:         cfP, updated_at:new Date().toISOString() };
+  let err;
+  if (ed.cf) ({ error:err } = await supa.from('cost_centers').update(data).eq('id',ed.cf));
+  else       ({ error:err } = await supa.from('cost_centers').insert(data));
+  if (err) { showToast('Erreur : '+err.message); return; }
+  await loadAll(); cm('modal-cf'); renderSec(curSec);
+  showToast('Centre de frais sauvegardé ✓');
+}
+async function delCF() {
+  if (!confirm('Supprimer ce CF ?')) return;
+  await supa.from('cost_centers').delete().eq('id',ed.cf);
+  await loadAll(); cm('modal-cf'); renderSec(curSec);
+}
+
+// ── MODAL ÉQUIPE ──────────────────────────────────────────────────────────────
+function omT()     { openT(null); }
+function edTeam(id){ openT(id);   }
+function openT(id) {
+  ed.team = id;
+  const t = id ? st.teams.find(x=>x.id===id) : null;
+  document.getElementById('team-title').textContent = id?'Modifier le modèle':'Nouveau modèle d\'équipe';
+  document.getElementById('t-name').value = t?.name||'';
+  document.getElementById('t-sh').value   = t?.shifts_per_day||1;
+  document.getElementById('t-h').value    = t?.hours_per_shift||8;
+  document.getElementById('t-d').value    = t?.days_per_week||5;
+  document.getElementById('t-del').style.display = id?'':'none';
+  updTP(); om('modal-team');
+}
+function updTP() {
+  const sh = parseFloat(document.getElementById('t-sh')?.value)||1;
+  const h  = parseFloat(document.getElementById('t-h')?.value)||8;
+  const d  = parseFloat(document.getElementById('t-d')?.value)||5;
+  const hD = sh*h, hW = hD*d;
+  const el = document.getElementById('tp');
+  if (el) el.textContent = `Capacité : ${hD}h/jour · ${hW}h/semaine · ~${Math.round(hW*52)}h/an`;
+}
+async function saveTeam() {
+  const name = document.getElementById('t-name').value.trim();
+  if (!name) { showToast('Nom requis'); return; }
+  const data = { org_id:currentOrgId, name,
+    shifts_per_day: parseInt(document.getElementById('t-sh').value)||1,
+    hours_per_shift:parseFloat(document.getElementById('t-h').value)||8,
+    days_per_week:  parseInt(document.getElementById('t-d').value)||5 };
+  let err;
+  if (ed.team) ({ error:err } = await supa.from('team_models').update(data).eq('id',ed.team));
+  else         ({ error:err } = await supa.from('team_models').insert(data));
+  if (err) { showToast('Erreur : '+err.message); return; }
+  await loadAll(); cm('modal-team'); renderSec(curSec);
+  showToast('Modèle sauvegardé ✓');
+}
+async function delTeam() {
+  if (!confirm('Supprimer ce modèle ?')) return;
+  await supa.from('team_models').delete().eq('id',ed.team);
+  await loadAll(); cm('modal-team'); renderSec(curSec);
+}
+
+// ── ICÔNES ────────────────────────────────────────────────────────────────────
+function setupIcons() {
+  document.getElementById('g-icons')?.querySelectorAll('span').forEach(sp => {
+    sp.style.cssText='cursor:pointer;font-size:18px;padding:4px;border-radius:5px;border:1px solid var(--border);transition:all .15s;display:inline-block;';
+    sp.onclick=()=>{
+      document.getElementById('g-icon').value=sp.textContent;
+      document.getElementById('g-icons').querySelectorAll('span').forEach(s2=>{s2.style.borderColor='var(--border)';s2.style.background='transparent';});
+      sp.style.borderColor='var(--purple)';sp.style.background='var(--purple-bg)';
+    };
+  });
+}
+
+// ── MODALS ────────────────────────────────────────────────────────────────────
+function om(id)  { document.getElementById(id).classList.add('open');    }
+function cm(id)  { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));});
+// WC preview sur changement CF
+['wc-cf-su','wc-cf-ru','wc-rate'].forEach(id=>document.getElementById(id)?.addEventListener('change',updateWCPreview));
+</script>
+</body>
+</html>

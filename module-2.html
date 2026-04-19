@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Processus — ProcessOS</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<style>
+/* ── LAYOUT SPÉCIFIQUE MODULE 2 ── */
+.m2-layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 76px);}
+.m2-sidebar{width:248px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.m2-main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.sb-section{display:flex;flex-direction:column;overflow:hidden;}
+.sb-section.grow{flex:1;min-height:0;}
+.sb-head{padding:8px 12px 4px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.sb-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);}
+.lv-pill{font-size:9px;padding:1px 6px;border-radius:10px;font-weight:600;}
+.lv-m{background:var(--purple-bg);color:var(--purple);}
+.lv-s{background:var(--teal-bg);color:var(--teal);}
+.sb-search{padding:0 8px 5px;flex-shrink:0;}
+.sb-search input{width:100%;font-family:var(--font);font-size:11px;padding:5px 8px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text);outline:none;}
+.sb-search input:focus{border-color:var(--purple);}
+.sb-list{overflow-y:auto;padding:4px 8px;flex:1;}
+.proc-item{padding:8px 10px;border-radius:var(--r);cursor:pointer;margin-bottom:3px;border:1px solid transparent;transition:all .15s;}
+.proc-item:hover{background:var(--bg3);}
+.proc-item.sel-m{background:var(--purple-bg);border-color:var(--purple);}
+.proc-item.sel-s{background:var(--teal-bg);border-color:var(--teal);}
+.proc-item-name{font-size:12px;font-weight:500;color:var(--text);margin-bottom:2px;display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.proc-item.sel-m .proc-item-name{color:var(--purple);}
+.proc-item.sel-s .proc-item-name{color:var(--teal);}
+.proc-item-meta{font-size:10px;color:var(--text3);display:flex;gap:5px;}
+.sb-divider{height:1px;background:var(--border);flex-shrink:0;}
+.sb-footer{padding:6px 8px;border-top:1px solid var(--border);flex-shrink:0;}
+.dot-st{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.dst-draft{background:var(--amber);}
+.dst-submitted{background:var(--blue);}
+.dst-approved{background:var(--green);}
+.dst-rejected{background:var(--red);}
+.usage-tag{font-size:9px;padding:1px 5px;border-radius:3px;background:var(--blue-bg);color:var(--blue);}
+/* EDITOR */
+.ed-header{padding:11px 16px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:flex-start;gap:12px;flex-shrink:0;flex-wrap:wrap;box-shadow:var(--shadow);}
+.proc-name-inp{font-family:var(--font);font-size:18px;font-weight:500;color:var(--text);background:transparent;border:none;outline:none;width:100%;}
+.proc-name-inp::placeholder{color:var(--text3);}
+.meta-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;align-items:center;}
+.meta-inp{font-family:var(--font);font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);outline:none;}
+.meta-inp:focus{border-color:var(--purple);}
+.lv-badge{display:flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.lv-badge.macro{background:var(--purple-bg);color:var(--purple);}
+.lv-badge.sub{background:var(--teal-bg);color:var(--teal);}
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 14px;flex-shrink:0;overflow-x:auto;}
+.tab{padding:11px 12px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap;}
+.tab:hover{color:var(--text2);}
+.tab.on{color:var(--purple);border-bottom-color:var(--purple);}
+.panel{display:none;flex:1;flex-direction:column;}
+.panel.on{display:flex;}
+/* STEPS */
+.steps-wrap{flex:1;overflow-y:auto;padding:12px 16px;}
+.step-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:6px;overflow:hidden;box-shadow:var(--shadow);}
+.step-card.crit{border-left:3px solid var(--red);}
+.step-card.sp-card{border-left:3px solid var(--teal);}
+.step-card.expanded{border-color:var(--purple);}
+.step-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;}
+.step-badge{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;}
+.ba{background:var(--teal-bg);color:var(--teal);}.bd{background:var(--amber-bg);color:var(--amber);}
+.bc{background:var(--purple-bg);color:var(--purple);}.bdo{background:var(--blue-bg);color:var(--blue);}
+.bau{background:var(--bg4);color:var(--text3);}.be{background:var(--green-bg);color:var(--green);}
+.bsp{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal);}
+.step-info{flex:1;min-width:0;}
+.step-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sp-card .step-name{color:var(--teal);}
+.step-meta{font-size:11px;color:var(--text3);margin-top:2px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+.step-body{padding:0 12px 10px;border-top:1px solid var(--border);display:none;}
+.step-card.expanded .step-body{display:block;}
+.body-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:4px;margin-top:8px;}
+.ai-box{background:var(--purple-light);border:1px solid var(--purple-bg);border-radius:var(--r);padding:7px 10px;margin-top:5px;font-size:12px;color:var(--text2);}
+.ai-lbl{font-size:10px;font-weight:600;text-transform:uppercase;color:var(--purple);margin-bottom:2px;}
+.sp-block{background:var(--teal-bg);border:1px solid var(--teal);border-radius:var(--r2);padding:10px;margin-top:6px;}
+.add-step-bar{padding:7px 16px;border-top:1px solid var(--border);background:var(--bg2);display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0;}
+.asb{display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .15s;}
+.asb:hover{background:var(--bg4);color:var(--text);}
+.asb.sp{border-color:var(--teal);color:var(--teal);background:var(--teal-bg);}
+.asb .dot{width:6px;height:6px;border-radius:2px;flex-shrink:0;}
+/* GAMME */
+.gamme-wrap{flex:1;overflow:auto;}
+.gcols{display:grid;grid-template-columns:220px 130px 1fr 150px;position:sticky;top:0;z-index:10;min-width:700px;background:var(--bg2);}
+.gch{padding:8px 12px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);border-bottom:1px solid var(--border);border-right:1px solid var(--border);}
+.gch:last-child{border-right:none;}
+.grow{display:grid;grid-template-columns:220px 130px 1fr 150px;border-bottom:1px solid var(--border);min-height:70px;min-width:700px;}
+.grow:hover{background:var(--bg3);}
+.grow.crit-r{border-left:3px solid var(--red);}
+.grow.sp-r{border-left:3px solid var(--teal);}
+.gcell{padding:10px 12px;border-right:1px solid var(--border);}
+.gcell:last-child{border-right:none;}
+.diag-c{display:flex;flex-direction:column;align-items:center;padding:4px;}
+.conn{width:2px;height:12px;background:var(--border2);flex-shrink:0;}
+.dnode{display:flex;align-items:center;justify-content:center;flex-direction:column;width:178px;min-height:40px;border-radius:7px;border:1.5px solid;padding:5px 8px;text-align:center;position:relative;}
+.dn-action{background:var(--teal-bg);border-color:var(--teal);}
+.dn-decision{background:var(--amber-bg);border-color:var(--amber);}
+.dn-control{background:var(--purple-bg);border-color:var(--purple);}
+.dn-document{background:var(--blue-bg);border-color:var(--blue);}
+.dn-auto{background:var(--bg3);border-color:var(--border2);border-style:dashed;}
+.dn-end{background:var(--green-bg);border-color:var(--green);border-radius:18px;}
+.dn-subprocess{background:var(--teal-bg);border-color:var(--teal);border-style:double;border-width:3px;}
+.dn-num{font-size:9px;font-weight:700;opacity:.7;margin-bottom:1px;}
+.dn-lbl{font-size:11px;font-weight:600;line-height:1.3;}
+.dn-crit{position:absolute;top:-6px;right:-6px;background:var(--red);color:white;font-size:7px;font-weight:700;padding:1px 4px;border-radius:3px;}
+/* RACI */
+.raci-wrap{padding:14px 16px;overflow-y:auto;}
+.raci-table{width:100%;border-collapse:collapse;font-size:12px;}
+.raci-table th{background:var(--bg3);padding:7px 10px;font-weight:500;font-size:11px;color:var(--text3);border:1px solid var(--border);}
+.raci-table td{padding:7px 10px;border:1px solid var(--border);color:var(--text2);background:var(--bg2);}
+.raci-table tr:hover td{background:var(--bg3);}
+.rc{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;transition:transform .1s;}
+.rc:hover{transform:scale(1.15);}
+.rcR{background:var(--teal-bg);color:var(--teal);}
+.rcA{background:var(--amber-bg);color:var(--amber);}
+.rcC{background:var(--blue-bg);color:var(--blue);}
+.rcI{background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+.rcx{color:var(--text3);border:1px solid var(--border);background:transparent;}
+/* SOP / JSON */
+.sop-wrap{padding:14px 16px;overflow-y:auto;}
+.sop-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:5px;}
+.sop-sec{margin-bottom:14px;}
+.crit-box{border-left:3px solid var(--red);padding:7px 10px;background:var(--red-bg);border-radius:0 var(--r) var(--r) 0;margin-bottom:5px;font-size:12px;color:var(--text2);}
+.iso-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--blue-bg);color:var(--blue);font-family:var(--mono);display:inline-block;margin:2px;}
+.json-wrap{padding:12px 16px;flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.json-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:12px;font-family:var(--mono);font-size:11px;color:var(--text2);overflow:auto;white-space:pre;line-height:1.7;flex:1;}
+.jk{color:#2563a8;}[data-theme="dark"] .jk{color:#85b7eb;}
+.js{color:#1a7a4a;}[data-theme="dark"] .js{color:#9fe1cb;}
+.jn{color:#b86a00;}[data-theme="dark"] .jn{color:#fac775;}
+/* WORKFLOW */
+.wf-wrap{padding:14px 16px;overflow-y:auto;}
+.wf-step{display:flex;gap:10px;position:relative;}
+.wf-step:not(:last-child)::after{content:'';position:absolute;left:13px;top:28px;width:2px;height:calc(100% + 4px);background:var(--border);}
+.wf-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;z-index:1;border:2px solid var(--border);}
+.wf-dot.done{background:var(--green-bg);border-color:var(--green);color:var(--green);}
+.wf-dot.active{background:var(--amber-bg);border-color:var(--amber);color:var(--amber);}
+.wf-dot.wait{background:var(--bg3);border-color:var(--border);color:var(--text3);}
+.wf-content{flex:1;padding:0 0 14px;}
+/* WELCOME */
+.m2-welcome{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:40px;text-align:center;}
+/* BR ITEMS */
+.br-item{display:grid;grid-template-columns:1fr auto 1fr auto;gap:5px;align-items:center;background:var(--bg3);border-radius:var(--r);padding:6px 9px;border:1px solid var(--border);margin-bottom:3px;}
+.bt{font-size:10px;padding:1px 5px;border-radius:4px;font-weight:500;}
+.bt-next{background:var(--green-bg);color:var(--green);}
+.bt-end{background:var(--red-bg);color:var(--red);}
+.bt-block{background:var(--amber-bg);color:var(--amber);}
+.bt-goto{background:var(--blue-bg);color:var(--blue);}
+.flow-vis{margin-top:8px;padding:9px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);}
+.fv-row{display:flex;align-items:center;gap:5px;margin-bottom:3px;flex-wrap:wrap;}
+.fn{font-size:11px;padding:3px 7px;border-radius:5px;font-weight:500;white-space:nowrap;}
+.fn-cur{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber);}
+.fn-step{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.fn-end{background:var(--green-bg);color:var(--green);border:1px solid var(--green);}
+.fn-block{background:var(--red-bg);color:var(--red);border:1px solid var(--red);}
+</style>
+</head>
+<body>
+
+<div id="topbar" class="topbar"></div>
+
+<div class="m2-layout">
+  <!-- SIDEBAR -->
+  <div class="m2-sidebar">
+    <div class="sb-section">
+      <div class="sb-head"><span class="sb-lbl">Macro-processus</span><span class="lv-pill lv-m">N1</span></div>
+      <div class="sb-search"><input id="srch-m" placeholder="Rechercher..." oninput="filterList('macro',this.value)"></div>
+      <div class="sb-list" id="list-macro"><div class="empty-s" style="padding:12px;text-align:center;font-size:11px;color:var(--text3);">Aucun macro-processus</div></div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section grow">
+      <div class="sb-head"><span class="sb-lbl">Sous-processus</span><span class="lv-pill lv-s">Réutilisables</span></div>
+      <div class="sb-search"><input id="srch-s" placeholder="Rechercher..." oninput="filterList('sub',this.value)"></div>
+      <div class="sb-list" id="list-sub" style="flex:1;overflow-y:auto;"><div class="empty-s" style="padding:12px;text-align:center;font-size:11px;color:var(--text3);">Réutilisables partout</div></div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-footer">
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div onclick="openNewModal('sub')"  class="nav-link" style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);">＋ Nouveau sous-processus</div>
+        <div onclick="openNewModal('macro')" class="nav-link" style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);">＋ Nouveau macro-processus</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="m2-main">
+
+    <!-- WELCOME -->
+    <div class="m2-welcome" id="m2-welcome">
+      <div style="width:48px;height:48px;border-radius:12px;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:white;">🔁</div>
+      <div style="font-size:20px;font-weight:500;color:var(--text);">Module Processus</div>
+      <div style="font-size:14px;color:var(--text2);max-width:480px;line-height:1.6;">Décrivez vos processus une fois. La RACI, la gamme opératoire, la SOP et le JSON universel se génèrent automatiquement.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+        <button class="btn btn-primary" onclick="loadExample()">Charger exemple</button>
+        <button class="btn btn-teal" onclick="openNewModal('sub')">+ Sous-processus</button>
+        <button class="btn" onclick="openNewModal('macro')">+ Macro-processus</button>
+      </div>
+      <div id="m2-master-info" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;max-width:440px;width:100%;text-align:left;font-size:12px;color:var(--text2);line-height:1.8;box-shadow:var(--shadow);"></div>
+    </div>
+
+    <!-- ÉDITEUR -->
+    <div id="m2-editor" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+      <div class="ed-header">
+        <div style="flex:1;min-width:180px;">
+          <input class="proc-name-inp" id="pname" placeholder="Nom du processus..." oninput="saveCurrent()">
+          <div class="meta-row">
+            <div class="lv-badge" id="lv-badge">Niveau</div>
+            <input class="meta-inp" id="pid"  placeholder="ID: PR-001" style="width:95px;" oninput="saveCurrent()">
+            <input class="meta-inp" id="pver" placeholder="v1.0"       style="width:46px;" oninput="saveCurrent()">
+            <div class="wf-badge wf-draft" id="wf-badge" onclick="openWFModal()">⬤ Brouillon</div>
+          </div>
+          <div id="used-in" style="font-size:11px;color:var(--text3);margin-top:4px;"></div>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <button class="btn btn-sm" onclick="openISOModal()">Normes ISO</button>
+          <button class="btn btn-sm" onclick="exportPDF()">↓ PDF</button>
+          <button class="btn btn-sm" onclick="exportJSON()">↓ JSON</button>
+          <button class="btn btn-success btn-sm" onclick="saveCurrent();showToast('Sauvegardé ✓')">Sauvegarder</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab on" onclick="showTab('steps')">Étapes</div>
+        <div class="tab" onclick="showTab('gamme')">Gamme</div>
+        <div class="tab" onclick="showTab('raci')">RACI</div>
+        <div class="tab" onclick="showTab('sop')">Fiche SOP</div>
+        <div class="tab" onclick="showTab('workflow')">Validation</div>
+        <div class="tab" onclick="showTab('json')">JSON universel</div>
+      </div>
+
+      <!-- ÉTAPES -->
+      <div class="panel on" id="panel-steps" style="overflow:hidden;">
+        <div class="steps-wrap">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px;display:flex;justify-content:space-between;">
+            <span>Étapes</span><span id="scnt" style="font-weight:400;"></span>
+          </div>
+          <div id="steps-list"></div>
+          <div id="steps-empty" style="padding:20px;text-align:center;font-size:12px;color:var(--text3);">Ajoute des étapes ci-dessous</div>
+        </div>
+        <div class="add-step-bar">
+          <span style="font-size:10px;color:var(--text3);align-self:center;">Ajouter :</span>
+          <button class="asb" onclick="addStep('action')"><span class="dot" style="background:var(--teal)"></span>Action</button>
+          <button class="asb" onclick="addStep('decision')"><span class="dot" style="background:var(--amber)"></span>Décision</button>
+          <button class="asb" onclick="addStep('control')"><span class="dot" style="background:var(--purple)"></span>Contrôle</button>
+          <button class="asb" onclick="addStep('document')"><span class="dot" style="background:var(--blue)"></span>Document</button>
+          <button class="asb" onclick="addStep('auto')"><span class="dot" style="background:var(--text3)"></span>Auto IA</button>
+          <button class="asb" onclick="addStep('end')"><span class="dot" style="background:var(--green)"></span>Fin</button>
+          <button class="asb sp" id="btn-call-sub" style="display:none" onclick="openCallSubModal()">↳ Sous-processus</button>
+        </div>
+      </div>
+
+      <!-- GAMME -->
+      <div class="panel" id="panel-gamme">
+        <div class="gamme-wrap">
+          <div class="gcols">
+            <div class="gch">Diagramme de flux</div><div class="gch">RACI</div>
+            <div class="gch">Description & instructions</div><div class="gch">Délivrables</div>
+          </div>
+          <div id="gamme-rows"></div>
+        </div>
+      </div>
+
+      <!-- RACI -->
+      <div class="panel" id="panel-raci">
+        <div class="raci-wrap">
+          <!-- Info master data -->
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px;padding:6px 10px;background:var(--purple-light);border:1px solid var(--purple-bg);border-radius:var(--r);">
+            Rôles depuis <a href="module-0.html" style="color:var(--purple);">⚙ Paramètres</a> · Clique pour cycler R → A → C → I
+          </div>
+          <div id="raci-content"></div>
+        </div>
+      </div>
+
+      <!-- SOP -->
+      <div class="panel" id="panel-sop"><div class="sop-wrap" id="sop-content"></div></div>
+
+      <!-- WORKFLOW -->
+      <div class="panel" id="panel-workflow"><div class="wf-wrap" id="wf-content"></div></div>
+
+      <!-- JSON -->
+      <div class="panel" id="panel-json">
+        <div class="json-wrap">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-shrink:0;">
+            <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);">Format universel ProcessOS — lisible par toute IA</span>
+            <button class="btn btn-sm" onclick="copyJSON()">Copier</button>
+          </div>
+          <div class="json-box" id="json-display"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUSBAR -->
+<div class="statusbar">
+  <div class="status-dot"></div>
+  <span>Module 2 — Processus · Master data depuis Module 0 (rôles, départements) et Module 1 (postes)</span>
+  <span style="margin-left:auto;" id="stime"></span>
+</div>
+
+<!-- MODAL NOUVEAU PROCESSUS -->
+<div class="modal-overlay" id="modal-new">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="modal-new-title">Nouveau processus</div><button class="icon-btn" onclick="closeModal('modal-new')">✕</button></div>
+    <div class="modal-body">
+      <div id="new-info" style="padding:7px 10px;border-radius:var(--r);font-size:12px;line-height:1.5;"></div>
+      <div class="fg"><div class="fl">Nom</div><input class="fi" id="new-name" placeholder="Ex: Réception de marchandise"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="fg"><div class="fl">Identifiant</div><input class="fi" id="new-id" placeholder="PR-SC-001"></div>
+        <!-- MASTER DATA : départements depuis Module 0 -->
+        <div class="fg">
+          <div class="fl">Département <span style="font-weight:400;text-transform:none;">(Module 0)</span></div>
+          <select class="fi" id="new-dept"></select>
+        </div>
+      </div>
+      <div class="fg"><div class="fl">Description</div><textarea class="fi" id="new-desc" rows="2" placeholder="Objectif en une phrase..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modal-new')">Annuler</button><button class="btn btn-primary" onclick="createProcess()">Créer</button></div>
+  </div>
+</div>
+
+<!-- MODAL ÉTAPE -->
+<div class="modal-overlay" id="modal-step">
+  <div class="modal modal-lg">
+    <div class="modal-header"><div class="modal-title" id="step-modal-title">Modifier l'étape</div><button class="icon-btn" onclick="closeModal('modal-step')">✕</button></div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="fg"><div class="fl">Nom</div><input class="fi" id="s-name" placeholder="Nom de l'étape"></div>
+        <div class="fg"><div class="fl">Type</div>
+          <select class="fi" id="s-type">
+            <option value="action">Action</option><option value="decision">Décision</option>
+            <option value="control">Contrôle qualité</option><option value="document">Document</option>
+            <option value="auto">Automatique (IA)</option><option value="end">Fin</option>
+          </select>
+        </div>
+      </div>
+      <!-- MASTER DATA : rôles depuis Module 0 + postes depuis Module 1 -->
+      <div class="fg">
+        <div class="fl">Rôle responsable <span style="font-weight:400;text-transform:none;">(Module 0 · Module 1)</span></div>
+        <input class="fi" id="s-role" placeholder="Ex: Opérateur" list="roles-datalist">
+        <datalist id="roles-datalist"></datalist>
+      </div>
+      <div class="fg"><div class="fl">Description / Instruction</div><textarea class="fi" id="s-desc" rows="2" placeholder="Ce que l'opérateur doit faire..."></textarea></div>
+      <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text2);"><input type="checkbox" id="s-crit" style="width:14px;height:14px;accent-color:var(--red);">Étape critique</label></div>
+      <div class="fg"><div class="fl">Action IA automatique</div><input class="fi" id="s-ai" placeholder="Ex: Vérifier écart vs commande, alerter si > 2%"></div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div class="fl" style="margin:0;">Champs de saisie</div>
+          <button class="btn btn-sm" onclick="addField()">+ Ajouter</button>
+        </div>
+        <div id="fields-ed"></div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div class="fl" style="margin:0;">Branchements conditionnels</div>
+          <button class="btn btn-sm" onclick="addBranch()">+ Ajouter</button>
+        </div>
+        <div id="branches-ed"></div>
+        <div id="flow-preview"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modal-step')">Annuler</button><button class="btn btn-primary" onclick="saveStep()">Sauvegarder</button></div>
+  </div>
+</div>
+
+<!-- MODAL APPEL SOUS-PROCESSUS -->
+<div class="modal-overlay" id="modal-callsub">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Appeler un sous-processus</div><button class="icon-btn" onclick="closeModal('modal-callsub')">✕</button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text2);line-height:1.6;">Tout changement dans le sous-processus se reflète automatiquement ici.</div>
+      <div class="fg"><div class="fl">Sous-processus disponibles</div><select class="fi" id="sub-sel" onchange="previewSub(this.value)"><option value="">— Choisir —</option></select></div>
+      <div id="sub-preview"></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modal-callsub')">Annuler</button><button class="btn btn-primary" onclick="insertSub()">Insérer</button></div>
+  </div>
+</div>
+
+<!-- MODAL ISO -->
+<div class="modal-overlay" id="modal-iso">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Références normatives</div><button class="icon-btn" onclick="closeModal('modal-iso')">✕</button></div>
+    <div class="modal-body">
+      <!-- MASTER DATA : normes actives depuis Module 0 -->
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Normes actives par défaut configurées dans <a href="module-0.html" style="color:var(--purple);">⚙ Paramètres</a></div>
+      <div id="iso-cbs" style="display:flex;flex-direction:column;gap:7px;"></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modal-iso')">Annuler</button><button class="btn btn-primary" onclick="saveISO()">Appliquer</button></div>
+  </div>
+</div>
+
+<!-- MODAL WORKFLOW -->
+<div class="modal-overlay" id="modal-wf">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Workflow de validation</div><button class="icon-btn" onclick="closeModal('modal-wf')">✕</button></div>
+    <div class="modal-body"><div id="wf-modal-body"></div></div>
+    <div class="modal-footer" id="wf-modal-footer"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── ÉTAT LOCAL ────────────────────────────────────────────────────────────────
+let curId = null, curLv = null;
+let editSid = null, editBrs = [], editFields = [];
+let newLv = 'macro';
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+applyTheme();
+injectSharedCSS();
+initSupabase();
+(async () => {
+  if (supa) {
+    const { data: { session } } = await supa.auth.getSession();
+    if (session?.user) await onLoginSuccess(session.user);
+  }
+  await load();
+  renderTopbar('module-2');
+  renderSidebar();
+  showWelcome();
+  // Ouvrir un processus depuis l'accueil via URL ?id=xxx
+  const urlId = new URLSearchParams(location.search).get('id');
+  if (urlId) {
+    const found = [...db.macros, ...db.subs].find(p => p._id === urlId);
+    if (found) select(found._id, found.level);
+  }
+})();
+
+// ── WELCOME ───────────────────────────────────────────────────────────────────
+function showWelcome() {
+  const s = getSettings();
+  const posts = db.org?.posts || [];
+  document.getElementById('m2-master-info').innerHTML = `
+    <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px;">Master data disponible</div>
+    <div>📂 <strong>Départements :</strong> ${(s.departments||[]).slice(0,4).join(', ')}${(s.departments||[]).length>4?'...':''}</div>
+    <div>🎭 <strong>Rôles :</strong> ${(s.roles||[]).slice(0,4).join(', ')}${(s.roles||[]).length>4?'...':''}</div>
+    <div>👥 <strong>Postes (M1) :</strong> ${posts.length ? posts.slice(0,3).map(p=>p.name).join(', ')+(posts.length>3?'...':'') : 'Aucun — ajouter dans Module 1'}</div>
+    <div style="margin-top:6px;font-size:11px;color:var(--text3);">Ces données alimentent les menus déroulants de l'éditeur.</div>
+  `;
+}
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function renderSidebar() {
+  renderFilteredList('list-macro', db.macros, 'macro');
+  renderFilteredList('list-sub',   db.subs,   'sub');
+}
+function filterList(lv, q) {
+  const list = lv === 'macro' ? db.macros : db.subs;
+  const lower = q.toLowerCase();
+  renderFilteredList('list-' + lv, q ? list.filter(p =>
+    p.name.toLowerCase().includes(lower) || p.id.toLowerCase().includes(lower)
+  ) : list, lv);
+}
+function renderFilteredList(elId, list, lv) {
+  const el = document.getElementById(elId); if (!el) return;
+  if (!list.length) { el.innerHTML = `<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3);">Aucun ${lv==='macro'?'macro-processus':'sous-processus'}</div>`; return; }
+  const usage = {};
+  if (lv === 'sub') { db.subs.forEach(s => { usage[s._id] = 0; }); db.macros.forEach(m => m.steps.filter(s => s.type === 'subprocess').forEach(s => { if (s.spid && usage[s.spid] !== undefined) usage[s.spid]++; })); }
+  el.innerHTML = list.map(p => {
+    const ac = p._id === curId ? (lv==='macro'?'sel-m':'sel-s') : '';
+    const ds = {draft:'dst-draft',submitted:'dst-submitted',approved:'dst-approved',rejected:'dst-rejected'}[p.workflow?.state||'draft']||'dst-draft';
+    const u  = lv==='sub' && usage[p._id]>0 ? `<span class="usage-tag">×${usage[p._id]}</span>` : '';
+    return `<div class="proc-item ${ac}" onclick="select('${p._id}','${lv}')">
+      <div class="proc-item-name"><span class="dot-st ${ds}"></span>${p.name}</div>
+      <div class="proc-item-meta"><span style="font-family:monospace;">${p.id}</span><span>${p.steps.length} ét.</span>${u}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── SÉLECTION ─────────────────────────────────────────────────────────────────
+function select(id, lv) {
+  curId = id; curLv = lv;
+  const p = getProc(); if (!p) return;
+  document.getElementById('m2-welcome').style.display  = 'none';
+  document.getElementById('m2-editor').style.cssText   = 'display:flex;flex:1;flex-direction:column;overflow:hidden;';
+  document.getElementById('pname').value = p.name;
+  document.getElementById('pid').value   = p.id;
+  document.getElementById('pver').value  = p.version;
+  const badge = document.getElementById('lv-badge');
+  badge.className = 'lv-badge ' + (lv==='macro'?'macro':'sub');
+  badge.textContent = lv==='macro'?'⬡ Macro-processus':'◇ Sous-processus';
+  updateWFBadge(p);
+  document.getElementById('btn-call-sub').style.display = lv==='macro'?'':'none';
+  const ui = document.getElementById('used-in');
+  if (lv === 'sub') { const users = db.macros.filter(m => m.steps.some(s => s.type==='subprocess'&&s.spid===id)); ui.textContent = users.length ? 'Utilisé dans : '+users.map(m=>m.name).join(', ') : 'Non utilisé dans un macro-processus'; }
+  else ui.textContent = '';
+  // MASTER DATA : peupler le datalist rôles depuis M0 + postes M1
+  populateRolesDatalist();
+  renderSidebar(); renderSteps(); showTab('steps');
+}
+
+function getProc() { return [...db.macros, ...db.subs].find(p => p._id === curId); }
+
+function saveCurrent() {
+  const p = getProc(); if (!p) return;
+  p.name    = document.getElementById('pname').value;
+  p.id      = document.getElementById('pid').value;
+  p.version = document.getElementById('pver').value;
+  p.updated_at = new Date().toISOString();
+  save(); renderSidebar();
+}
+
+// MASTER DATA : datalist rôles = Module 0 roles + Module 1 posts
+function populateRolesDatalist() {
+  const s = getSettings();
+  const posts = db.org?.posts || [];
+  // Rôles depuis M0
+  const roles = s.roles || [];
+  // Personnes depuis M1
+  const persons = posts.filter(p=>p.person).map(p=>p.person);
+  // Titres des postes depuis M1
+  const titles = posts.map(p=>p.name);
+  const all = [...new Set([...roles, ...titles, ...persons])];
+  document.getElementById('roles-datalist').innerHTML = all.map(r => `<option value="${r}">`).join('');
+}
+
+// ── NOUVEAU PROCESSUS ─────────────────────────────────────────────────────────
+function openNewModal(lv) {
+  newLv = lv;
+  document.getElementById('modal-new-title').textContent = lv==='macro'?'Nouveau macro-processus':'Nouveau sous-processus';
+  const info = document.getElementById('new-info');
+  info.style.background = lv==='macro'?'var(--purple-bg)':'var(--teal-bg)';
+  info.style.color = lv==='macro'?'var(--purple)':'var(--teal)';
+  info.textContent = lv==='macro'?'Niveau 1 — Processus global qui appelle des sous-processus':'Niveau 2 — Réutilisable dans plusieurs macro-processus';
+  ['new-name','new-id','new-desc'].forEach(id => document.getElementById(id).value='');
+  // MASTER DATA : départements depuis Module 0
+  const s = getSettings();
+  document.getElementById('new-dept').innerHTML = (s.departments||['Production']).map(d=>`<option>${d}</option>`).join('');
+  openModal('modal-new');
+  setTimeout(() => document.getElementById('new-name').focus(), 100);
+}
+
+function createProcess() {
+  const name = document.getElementById('new-name').value.trim();
+  if (!name) { document.getElementById('new-name').focus(); return; }
+  const p = {
+    _id: uid('p'), id: document.getElementById('new-id').value.trim() || 'PR-'+(Date.now()%9999),
+    name, level: newLv, version: 'v1.0', workflow: { state: 'draft', history: [] },
+    department: document.getElementById('new-dept').value,
+    description: document.getElementById('new-desc').value.trim(),
+    iso_refs: getSettings().activeNorms || [], // MASTER DATA : normes actives depuis M0
+    steps: [], raci: {}, deliverables: {},
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  };
+  if (newLv==='macro') db.macros.push(p); else db.subs.push(p);
+  save(); closeModal('modal-new'); renderSidebar(); select(p._id, newLv);
+  showToast((newLv==='macro'?'Macro-processus':'Sous-processus')+' créé ✓');
+}
+
+// ── ÉTAPES ────────────────────────────────────────────────────────────────────
+function addStep(type) {
+  const p = getProc(); if (!p) return;
+  const s = { id: uid('s'), name: TCFG[type].l+' '+(p.steps.length+1), type, role:'', description:'', critical:false, ai_action:'', decisions:[], fields:[] };
+  p.steps.push(s); save(); renderSteps(); editStep(s.id);
+}
+function toggleStep(id) { document.getElementById('sc-'+id)?.classList.toggle('expanded'); }
+function delStep(id, e) { e.stopPropagation(); const p=getProc();if(!p)return; p.steps=p.steps.filter(s=>s.id!==id); save(); renderSteps(); }
+
+function editStep(id) {
+  const p = getProc(); if (!p) return;
+  const s = p.steps.find(x=>x.id===id); if (!s) return;
+  if (s.type==='subprocess') { const sub=db.subs.find(x=>x._id===s.spid); if(sub&&confirm('Ouvrir "'+sub.name+'" ?')) select(sub._id,'sub'); return; }
+  editSid=id; editBrs=JSON.parse(JSON.stringify(s.decisions||[])); editFields=JSON.parse(JSON.stringify(s.fields||[]));
+  document.getElementById('step-modal-title').textContent = 'Modifier — '+(s.name||'Étape');
+  document.getElementById('s-name').value = s.name; document.getElementById('s-type').value = s.type;
+  document.getElementById('s-role').value = s.role; document.getElementById('s-desc').value = s.description;
+  document.getElementById('s-crit').checked = s.critical; document.getElementById('s-ai').value = s.ai_action;
+  renderFieldsEd(); renderBrEd();
+  openModal('modal-step'); setTimeout(()=>document.getElementById('s-name').focus(),100);
+}
+function saveStep() {
+  const p=getProc();if(!p)return; const s=p.steps.find(x=>x.id===editSid);if(!s)return;
+  s.name=document.getElementById('s-name').value||s.name; s.type=document.getElementById('s-type').value;
+  s.role=document.getElementById('s-role').value; s.description=document.getElementById('s-desc').value;
+  s.critical=document.getElementById('s-crit').checked; s.ai_action=document.getElementById('s-ai').value;
+  s.fields=editFields; s.decisions=editBrs;
+  save(); closeModal('modal-step'); renderSteps(); showToast('Étape mise à jour ✓');
+}
+
+function renderSteps() {
+  const p = getProc(); if (!p) return;
+  const list=document.getElementById('steps-list'), empty=document.getElementById('steps-empty');
+  document.getElementById('scnt').textContent = p.steps.length+' étape'+(p.steps.length!==1?'s':'');
+  if (!p.steps.length) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  list.innerHTML = p.steps.map((s,i) => {
+    const isSP = s.type==='subprocess', sub=isSP?db.subs.find(x=>x._id===s.spid):null;
+    const tc=TCFG[s.type]||TCFG.action, hasBr=s.decisions?.length>0;
+    let body='';
+    if (isSP&&sub) body=`<div class="sp-block"><div style="font-size:12px;font-weight:600;color:var(--teal);margin-bottom:2px;">↳ ${sub.name}</div><div style="font-size:11px;color:var(--text3);">${sub.id} · ${sub.steps.length} étapes</div><span style="font-size:11px;color:var(--teal);cursor:pointer;text-decoration:underline;" onclick="select('${sub._id}','sub')">Ouvrir →</span></div>`;
+    else {
+      if (s.description) body+=`<div><div class="body-lbl">Description</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">${s.description}</div></div>`;
+      if (hasBr) body+=`<div><div class="body-lbl">Branchements</div>${s.decisions.map(b=>{
+        let tl='',cls='';
+        if(b.type==='end'){tl='Fin';cls='bt-end';}else if(b.type==='block'){tl='⛔ '+(b.block_msg||'Blocage');cls='bt-block';}
+        else if(b.type==='next'){const nx=p.steps[i+1];tl=nx?(i+2)+'. '+nx.name:'Fin';cls='bt-next';}
+        else if(b.type==='goto'&&b.target_id){const tg=p.steps.find(x=>x.id===b.target_id);if(tg){tl=(p.steps.indexOf(tg)+1)+'. '+tg.name;cls='bt-goto';}}
+        return`<div class="br-item"><span style="font-size:12px;font-weight:500;color:${b.type==='end'||b.type==='block'?'var(--red)':'var(--green)'};">${b.label||'—'}</span><span style="color:var(--text3);">→</span><span style="font-size:11px;color:var(--text2);font-family:var(--mono);">${tl||'—'}</span><span class="bt ${cls}">${{next:'Suivant',goto:'Goto',end:'Fin',block:'Bloquer'}[b.type]||b.type}</span></div>`;
+      }).join('')}</div>`;
+      if (s.ai_action) body+=`<div class="ai-box"><div class="ai-lbl">IA</div>${s.ai_action}</div>`;
+    }
+    const colMap={teal:'teal',amber:'amber',purple:'purple',blue:'blue',green:'green',gray:'text3'};
+    const col=colMap[tc.c]||'teal';
+    return`<div class="step-card ${s.critical?'crit':''} ${isSP?'sp-card':''}" id="sc-${s.id}">
+      <div class="step-head" onclick="toggleStep('${s.id}')">
+        <div class="step-badge ${tc.b}">${isSP?'SP':i+1}</div>
+        <div class="step-info">
+          <div class="step-name">${isSP?'↳ ':''}${s.name}</div>
+          <div class="step-meta">
+            <span class="pill pill-${col}" style="${col==='text3'?'background:var(--bg4);color:var(--text3);':''}">${tc.l}</span>
+            ${s.role?`<span>${s.role}</span>`:''}
+            ${s.critical?'<span style="color:var(--red);">⚠</span>':''}
+            ${hasBr?`<span style="color:var(--amber);">⑂${s.decisions.length}</span>`:''}
+            ${s.fields?.length?`<span style="color:var(--blue);">⊞${s.fields.length}</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:3px;" onclick="event.stopPropagation()">
+          <button class="icon-btn" onclick="editStep('${s.id}')">✎</button>
+          <button class="icon-btn danger" onclick="delStep('${s.id}',event)">✕</button>
+        </div>
+      </div>
+      <div class="step-body">${body}</div>
+    </div>`;
+  }).join('');
+  const at=document.querySelector('.panel.on');
+  if(at?.id==='panel-gamme')renderGamme();if(at?.id==='panel-raci')renderRACI();
+  if(at?.id==='panel-sop')renderSOP();if(at?.id==='panel-json')renderJSON();
+  if(at?.id==='panel-workflow')renderWorkflow();
+}
+
+// ── CHAMPS ────────────────────────────────────────────────────────────────────
+function addField(){editFields.push({id:uid('f'),name:'',type:'text',required:true,source:'operator',options:'',ai_check:''});renderFieldsEd();}
+function removeField(i){editFields.splice(i,1);renderFieldsEd();}
+function renderFieldsEd(){
+  const el=document.getElementById('fields-ed');
+  if(!editFields.length){el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:7px;text-align:center;background:var(--bg3);border-radius:var(--r);">Aucun champ — étape sans saisie</div>`;return;}
+  el.innerHTML=editFields.map((f,i)=>`
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px;margin-bottom:5px;display:flex;flex-direction:column;gap:6px;">
+      <div style="display:flex;gap:5px;">
+        <input class="fi" placeholder="Nom du champ..." value="${f.name||''}" oninput="editFields[${i}].name=this.value" style="flex:1;font-size:12px;">
+        <button class="icon-btn danger" onclick="removeField(${i})">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;">
+        <select class="fi" onchange="editFields[${i}].type=this.value" style="font-size:12px;">${FTYPES.map(t=>`<option value="${t.v}" ${f.type===t.v?'selected':''}>${t.l}</option>`).join('')}</select>
+        <select class="fi" onchange="editFields[${i}].required=this.value==='req'" style="font-size:12px;">
+          <option value="req" ${f.required?'selected':''}>Obligatoire</option>
+          <option value="opt" ${!f.required?'selected':''}>Optionnel</option>
+          <option value="auto">Auto</option>
+        </select>
+        <input class="fi" placeholder="Vérif. IA..." value="${f.ai_check||''}" oninput="editFields[${i}].ai_check=this.value" style="font-size:12px;">
+      </div>
+      ${f.type==='select'?`<input class="fi" placeholder='Options : "Intact,Endommagé"' value="${f.options||''}" oninput="editFields[${i}].options=this.value" style="font-size:12px;">`:''}
+    </div>`).join('');
+}
+
+// ── BRANCHEMENTS ──────────────────────────────────────────────────────────────
+function addBranch(){editBrs.push({label:'',type:'next',target_id:''});renderBrEd();}
+function removeBranch(i){editBrs.splice(i,1);renderBrEd();}
+function renderBrEd(){
+  const p=getProc();const steps=p?p.steps:[];const ci=steps.findIndex(s=>s.id===editSid);
+  const opts=steps.map((s,i)=>i===ci?'':`<option value="${s.id}">${i+1}. ${s.name}</option>`).join('');
+  const el=document.getElementById('branches-ed');
+  if(!editBrs.length){el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:7px;text-align:center;background:var(--bg3);border-radius:var(--r);">Flux linéaire — aucun branchement</div>`;document.getElementById('flow-preview').innerHTML='';return;}
+  el.innerHTML=editBrs.map((b,i)=>`
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px;margin-bottom:5px;display:flex;flex-direction:column;gap:6px;">
+      <div style="display:flex;gap:5px;align-items:center;">
+        <span style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;min-width:16px;">Si</span>
+        <input class="fi" placeholder='"Oui","Conforme"...' value="${b.label||''}" oninput="editBrs[${i}].label=this.value;updateFP()" style="flex:1;font-size:12px;">
+        <button class="icon-btn danger" onclick="removeBranch(${i})">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:16px 1fr 1fr;gap:5px;align-items:center;">
+        <span style="font-size:11px;color:var(--text3);text-align:center;">→</span>
+        <select class="fi" onchange="editBrs[${i}].type=this.value;editBrs[${i}].target_id='';updateFP()" style="font-size:12px;">
+          <option value="next" ${b.type==='next'?'selected':''}>Étape suivante</option>
+          <option value="goto" ${b.type==='goto'?'selected':''}>Aller à...</option>
+          <option value="end"  ${b.type==='end'?'selected':''}>Fin du processus</option>
+          <option value="block"${b.type==='block'?'selected':''}>Bloquer + alerter</option>
+        </select>
+        ${b.type==='goto'?`<select class="fi" onchange="editBrs[${i}].target_id=this.value;updateFP()" style="font-size:12px;"><option value="">Choisir...</option>${opts}</select>`
+        :b.type==='block'?`<input class="fi" placeholder="Message alerte..." value="${b.block_msg||''}" oninput="editBrs[${i}].block_msg=this.value" style="font-size:12px;">`
+        :`<div></div>`}
+      </div>
+    </div>`).join('');
+  editBrs.forEach((b,i)=>{if(b.type==='goto'&&b.target_id){const el2=document.getElementById('branches-ed').querySelectorAll('select');if(el2[i*2+1])el2[i*2+1].value=b.target_id;}});
+  updateFP();
+}
+function updateFP(){
+  const p=getProc();if(!p)return;const steps=p.steps,ci=steps.findIndex(s=>s.id===editSid),cur=steps[ci];
+  if(!cur||!editBrs.length){document.getElementById('flow-preview').innerHTML='';return;}
+  const rows=editBrs.filter(b=>b.label).map(b=>{
+    let tl='',nc='fn-step';
+    if(b.type==='end'){tl='Fin';nc='fn-end';}else if(b.type==='block'){tl='⛔ Blocage';nc='fn-block';}
+    else if(b.type==='next'){const nx=steps[ci+1];tl=nx?nx.name:'Fin';nc=nx?'fn-step':'fn-end';}
+    else if(b.type==='goto'&&b.target_id){const tg=steps.find(s=>s.id===b.target_id);if(tg)tl=tg.name;}
+    if(!tl)return'';
+    return`<div class="fv-row"><span class="fn fn-cur">${cur.name}</span><span style="color:var(--text3);">→</span><span style="font-size:10px;color:var(--text3);font-style:italic;">${b.label}</span><span style="color:var(--text3);">→</span><span class="fn ${nc}">${tl}</span></div>`;
+  }).filter(Boolean).join('');
+  document.getElementById('flow-preview').innerHTML=rows?`<div class="flow-vis"><div style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--text3);margin-bottom:5px;">Aperçu flux</div>${rows}</div>`:'';
+}
+
+// ── SOUS-PROCESSUS ────────────────────────────────────────────────────────────
+function openCallSubModal(){
+  const sel=document.getElementById('sub-sel');
+  sel.innerHTML='<option value="">— Choisir —</option>'+db.subs.map(s=>`<option value="${s._id}">${s.name} (${s.id}) · ${s.steps.length} ét.</option>`).join('');
+  document.getElementById('sub-preview').innerHTML='';openModal('modal-callsub');
+}
+function previewSub(id){
+  const s=db.subs.find(x=>x._id===id);
+  document.getElementById('sub-preview').innerHTML=s?`<div style="background:var(--teal-bg);border:1px solid var(--teal);border-radius:var(--r);padding:9px;font-size:12px;margin-top:8px;"><strong style="color:var(--teal);">${s.name}</strong><div style="color:var(--text2);">${s.id} · ${s.department} · ${s.steps.length} étapes</div></div>`:'';
+}
+function insertSub(){
+  const p=getProc();if(!p)return;const subId=document.getElementById('sub-sel').value;if(!subId){showToast('Sélectionne un sous-processus');return;}
+  const sub=db.subs.find(s=>s._id===subId);if(!sub)return;
+  p.steps.push({id:uid('s'),name:sub.name,type:'subprocess',spid:subId,role:'',description:'Appel : '+sub.name,critical:false,ai_action:'',decisions:[],fields:[]});
+  save();closeModal('modal-callsub');renderSteps();showToast('Sous-processus inséré ✓');
+}
+
+// ── GAMME ─────────────────────────────────────────────────────────────────────
+function renderGamme(){
+  const p=getProc();const el=document.getElementById('gamme-rows');
+  if(!p||!p.steps.length){el.innerHTML='<div style="padding:32px;text-align:center;font-size:13px;color:var(--text3);">Ajoute des étapes pour générer la gamme</div>';return;}
+  if(!p.deliverables)p.deliverables={};
+  // MASTER DATA : rôles depuis Module 0 pour la RACI dans la gamme
+  const ROLES_=getSettings().roles.slice(0,5);
+  const rcS={R:'background:var(--teal-bg);color:var(--teal)',A:'background:var(--amber-bg);color:var(--amber)',C:'background:var(--blue-bg);color:var(--blue)',I:'background:var(--bg3);color:var(--text3);border:1px solid var(--border)'};
+  const nC={action:'teal',decision:'amber',control:'purple',document:'blue',auto:'gray',end:'green',subprocess:'teal'};
+  el.innerHTML=p.steps.map((s,i)=>{
+    const isSP=s.type==='subprocess',sub=isSP?db.subs.find(x=>x._id===s.spid):null;
+    const col=nC[s.type]||'teal',isLast=i===p.steps.length-1,colV=col==='gray'?'var(--text3)':`var(--${col})`;
+    const hasBr=s.decisions?.length>0;
+    const dbrs=hasBr?`<div style="margin-top:4px;display:flex;flex-direction:column;gap:2px;width:170px;">${s.decisions.map(b=>{
+      let tl='',bc='dbt-go';
+      if(b.type==='end'){tl='Fin';bc='dbt-ko';}else if(b.type==='block'){tl='⛔';bc='dbt-ko';}
+      else if(b.type==='next'){const nx=p.steps[i+1];tl=nx?nx.name.substring(0,12)+'…':'Fin';bc='dbt-ok';}
+      else if(b.type==='goto'&&b.target_id){const tg=p.steps.find(x=>x.id===b.target_id);if(tg)tl=tg.name.substring(0,12)+'…';}
+      return tl?`<div style="display:flex;align-items:center;gap:3px;font-size:10px;"><span style="color:var(--text3);font-style:italic;white-space:nowrap;">${b.label||'→'}</span><span style="flex:1;height:1px;background:var(--border2);"></span><span style="padding:1px 4px;border-radius:3px;font-size:9px;font-weight:500;background:${bc==='dbt-ok'?'var(--green-bg)':bc==='dbt-ko'?'var(--red-bg)':'var(--blue-bg)'};color:${bc==='dbt-ok'?'var(--green)':bc==='dbt-ko'?'var(--red)':'var(--blue)'};">${tl}</span></div>`:'';
+    }).filter(Boolean).join('')}</div>`:'';
+    const col1=`<div class="diag-c">
+      ${i>0?'<div class="conn"></div>':'<div style="height:12px;"></div>'}
+      <div class="dnode dn-${s.type}" style="position:relative;">
+        ${s.critical?'<div class="dn-crit">Critique</div>':''}
+        <div class="dn-num" style="color:${colV};">${isSP?'SP':i+1}</div>
+        <div class="dn-lbl" style="color:${colV};">${s.name}</div>
+      </div>${dbrs}
+      ${!isLast?'<div class="conn" style="flex:1;min-height:12px;"></div>':''}
+    </div>`;
+    const raciR=ROLES_.map(role=>{const v=(p.raci||{})[s.id+'_'+role]||'';if(!v)return'';return`<div style="display:flex;gap:5px;align-items:center;font-size:11px;"><span style="width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;${rcS[v]||''}">${v}</span><span style="color:var(--text3);font-size:10px;flex:1;">${role}</span></div>`;}).filter(Boolean).join('');
+    const col2=`<div style="display:flex;flex-direction:column;gap:4px;">${raciR||'<span style="font-size:10px;color:var(--text3);font-style:italic;">Non défini</span>'}</div>`;
+    let descBody='';
+    if(isSP&&sub)descBody=`<div style="display:flex;gap:5px;align-items:center;background:var(--teal-bg);border:1px solid var(--teal);border-radius:5px;padding:5px 7px;font-size:11px;color:var(--teal);cursor:pointer;" onclick="select('${sub._id}','sub')"><span style="font-size:14px;">↳</span><div><strong>${sub.name}</strong><div style="font-size:10px;opacity:.7;">${sub.id} · ${sub.steps.length} ét.</div></div></div>`;
+    else{descBody=`<div style="font-size:11px;color:var(--text2);line-height:1.6;">${s.description||'<span style="color:var(--text3);font-style:italic;">Non renseigné</span>'}</div>`;if(s.ai_action)descBody+=`<div style="display:flex;gap:5px;background:var(--purple-light);border:1px solid var(--purple-bg);border-radius:5px;padding:5px 7px;margin-top:4px;font-size:11px;color:var(--text2);">${s.ai_action}</div>`;}
+    const col3=`<div><div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;">${s.name}</div>${s.role?`<span style="display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;background:var(--bg3);color:var(--text3);margin-bottom:4px;border:1px solid var(--border);">${s.role}</span>`:''} ${descBody}</div>`;
+    const saved=p.deliverables[s.id]??null,delivs=saved!==null?saved:(DDEF[s.type]||[]);
+    const col4=`<div style="display:flex;flex-direction:column;gap:4px;">${delivs.map(d=>`<div style="display:flex;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:11px;color:var(--text2);"><span>${d.i||'📄'}</span><span>${d.l}</span></div>`).join('')||'<span style="font-size:11px;color:var(--text3);font-style:italic;">Aucun</span>'}<div onclick="addDeliv('${s.id}')" style="font-size:10px;color:var(--text3);border:1px dashed var(--border);border-radius:5px;padding:4px 6px;text-align:center;cursor:pointer;" onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Ajouter</div></div>`;
+    return`<div class="grow ${s.critical?'crit-r':''} ${isSP?'sp-r':''}"><div class="gcell" style="padding:0;">${col1}</div><div class="gcell">${col2}</div><div class="gcell">${col3}</div><div class="gcell">${col4}</div></div>`;
+  }).join('');
+}
+function addDeliv(sid){
+  const label=prompt('Délivrable :');if(!label)return;const p=getProc();if(!p)return;if(!p.deliverables)p.deliverables={};
+  const s=p.steps.find(x=>x.id===sid);if(!p.deliverables[sid])p.deliverables[sid]=[...(DDEF[s?.type]||[])];
+  p.deliverables[sid].push({i:'📄',l:label});save();renderGamme();showToast('Délivrable ajouté ✓');
+}
+
+// ── RACI ──────────────────────────────────────────────────────────────────────
+function renderRACI(){
+  const p=getProc();if(!p)return;if(!p.raci)p.raci={};
+  const el=document.getElementById('raci-content');
+  // MASTER DATA : rôles depuis Module 0
+  const ROLES_=getSettings().roles;
+  if(!p.steps.length){el.innerHTML='<div style="padding:20px;text-align:center;font-size:12px;color:var(--text3);">Ajoute des étapes d\'abord</div>';return;}
+  const rcS={R:'background:var(--teal-bg);color:var(--teal)',A:'background:var(--amber-bg);color:var(--amber)',C:'background:var(--blue-bg);color:var(--blue)',I:'background:var(--bg3);color:var(--text3);border:1px solid var(--border)'};
+  let h=`<table class="raci-table"><thead><tr><th style="min-width:130px;">Étape</th>${ROLES_.map(r=>`<th style="text-align:center;font-size:10px;">${r}</th>`).join('')}<th>Criticité</th></tr></thead><tbody>`;
+  p.steps.forEach(s=>{
+    h+=`<tr>
+      <td><strong>${s.name}</strong><br><span style="font-size:10px;color:var(--text3);">${s.role||'—'}</span></td>
+      ${ROLES_.map(r=>{const k=s.id+'_'+r,v=p.raci[k]||'',c=v?'rc'+v:'rcx';return`<td style="text-align:center;"><span class="rc ${c}" style="${rcS[v]||''}" onclick="cycleRaci('${s.id}','${r}')">${v||'—'}</span></td>`;}).join('')}
+      <td>${s.critical?'<span class="pill pill-red">Critique</span>':''}</td>
+    </tr>`;
+  });
+  h+=`</tbody></table><div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text2);">
+    <span><span class="rc rcR" style="display:inline-flex;">R</span> Responsible</span>
+    <span><span class="rc rcA" style="display:inline-flex;">A</span> Accountable</span>
+    <span><span class="rc rcC" style="display:inline-flex;">C</span> Consulted</span>
+    <span><span class="rc rcI" style="display:inline-flex;">I</span> Informed</span>
+  </div>`;
+  el.innerHTML=h;
+}
+function cycleRaci(sid,role){const p=getProc();if(!p)return;if(!p.raci)p.raci={};const k=sid+'_'+role,c=p.raci[k]||'';p.raci[k]=RCYCLE[(RCYCLE.indexOf(c)+1)%RCYCLE.length];save();renderRACI();}
+
+// ── SOP ───────────────────────────────────────────────────────────────────────
+function renderSOP(){
+  const p=getProc();if(!p)return;
+  // MASTER DATA : nom organisation depuis Module 0
+  const s2=getSettings();const crits=p.steps.filter(s=>s.critical);const spCalls=p.steps.filter(s=>s.type==='subprocess');
+  const wfLabel={draft:'Brouillon',submitted:'En révision',approved:'Approuvé',rejected:'Rejeté'}[p.workflow?.state||'draft'];
+  const wfCls={draft:'wf-draft',submitted:'wf-submitted',approved:'wf-approved',rejected:'wf-rejected'}[p.workflow?.state||'draft'];
+  document.getElementById('sop-content').innerHTML=`
+    <div id="sop-printable" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;box-shadow:var(--shadow);">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;padding-bottom:14px;border-bottom:2px solid var(--purple);">
+        <div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--purple);margin-bottom:5px;">ProcessOS · Fiche SOP</div>
+          <div style="font-size:19px;font-weight:600;color:var(--text);margin-bottom:3px;">${p.name}</div>
+          <!-- MASTER DATA : nom organisation depuis Module 0 -->
+          <div style="font-size:12px;color:var(--text3);">${s2.org?.name||'Organisation'} · ${p.department}</div>
+        </div>
+        <div style="text-align:right;"><div style="font-family:monospace;font-size:11px;color:var(--text3);">${p.id} · ${p.version}</div>
+        <div class="wf-badge ${wfCls}" style="display:inline-flex;margin-top:5px;">${wfLabel}</div></div>
+      </div>
+      <div class="sop-sec"><div class="sop-lbl">Objectif</div><div style="font-size:13px;color:var(--text2);line-height:1.7;">${p.description||'<span style="color:var(--text3)">Non renseigné</span>'}</div></div>
+      ${spCalls.length?`<div class="sop-sec"><div class="sop-lbl">Sous-processus appelés</div>${spCalls.map(s=>{const sub=db.subs.find(x=>x._id===s.spid);return sub?`<div style="display:flex;gap:7px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:var(--teal);">↳</span><strong style="color:var(--teal);">${sub.name}</strong><span style="color:var(--text3);">${sub.id}</span></div>`:''}).join('')}</div>`:''}
+      ${crits.length?`<div class="sop-sec"><div class="sop-lbl">Tâches critiques</div>${crits.map((s,i)=>`<div class="crit-box"><strong>CC-0${i+1}</strong> · ${s.name}${s.description?' — '+s.description:''}</div>`).join('')}</div>`:''}
+      <div class="sop-sec"><div class="sop-lbl">Étapes (${p.steps.length})</div>${p.steps.map((s,i)=>`<div style="display:flex;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:flex-start;">
+        <span style="color:var(--text3);width:18px;flex-shrink:0;">${i+1}.</span>
+        <div style="flex:1;"><span style="font-weight:600;color:${s.type==='subprocess'?'var(--teal)':'var(--text)'};">${s.type==='subprocess'?'↳ ':''} ${s.name}</span>
+        ${s.role?`<span style="color:var(--text3);"> · ${s.role}</span>`:''}
+        ${s.critical?'<span style="color:var(--red);margin-left:5px;font-size:10px;font-weight:600;">⚠ CRITIQUE</span>':''}
+        ${s.description?`<div style="font-size:11px;color:var(--text3);margin-top:1px;">${s.description}</div>`:''}</div>
+      </div>`).join('')}</div>
+      <!-- MASTER DATA : normes ISO depuis Module 0 -->
+      ${p.iso_refs?.length?`<div class="sop-sec"><div class="sop-lbl">Références normatives</div>${p.iso_refs.map(r=>`<span class="iso-tag">${r.replace(/_/g,' ')}</span>`).join('')}</div>`:''}
+      <div style="font-size:11px;color:var(--text3);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;">
+        <span>Créé ${new Date(p.created_at).toLocaleDateString('fr-CH')} · Mis à jour ${new Date(p.updated_at).toLocaleDateString('fr-CH')}</span>
+        <span>Généré par ProcessOS</span>
+      </div>
+    </div>`;
+}
+
+// ── WORKFLOW ──────────────────────────────────────────────────────────────────
+function updateWFBadge(p){
+  const state=p.workflow?.state||'draft';
+  const cfg={draft:{cls:'wf-draft',lbl:'⬤ Brouillon'},submitted:{cls:'wf-submitted',lbl:'⬆ En révision'},approved:{cls:'wf-approved',lbl:'✓ Approuvé'},rejected:{cls:'wf-rejected',lbl:'✕ Rejeté'}};
+  const c=cfg[state]||cfg.draft;
+  const b=document.getElementById('wf-badge');b.className='wf-badge '+c.cls;b.textContent=c.lbl;
+}
+function openWFModal(){
+  const p=getProc();if(!p)return;if(!p.workflow)p.workflow={state:'draft',history:[]};
+  const state=p.workflow.state;
+  const labels={draft:'Brouillon',submitted:'En révision',approved:'Approuvé',rejected:'Rejeté'};
+  let btns='<button class="btn" onclick="closeModal(\'modal-wf\')">Fermer</button>';
+  if(state==='draft')btns=`<button class="btn btn-amber" onclick="advanceWF('submitted')">⬆ Soumettre</button>`+btns;
+  else if(state==='submitted')btns=`<button class="btn btn-success" onclick="advanceWF('approved')">✓ Approuver</button><button class="btn btn-danger" onclick="advanceWF('rejected')">✕ Rejeter</button>`+btns;
+  else btns=`<button class="btn" onclick="advanceWF('draft')">↺ Remettre en brouillon</button>`+btns;
+  document.getElementById('wf-modal-body').innerHTML=`
+    <div style="margin-bottom:12px;"><div class="sop-lbl">Statut actuel</div><div class="wf-badge wf-${state}" style="display:inline-flex;">${labels[state]||state}</div></div>
+    <div class="fg" style="margin-bottom:10px;"><div class="fl">Commentaire</div><textarea class="fi" id="wf-comment" rows="2" style="width:100%;" placeholder="Raison..."></textarea></div>
+    <div class="sop-lbl">Historique</div>
+    <div style="display:flex;flex-direction:column;gap:5px;">${(p.workflow.history||[]).length?(p.workflow.history.slice().reverse().map(h=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:7px 9px;font-size:12px;color:var(--text2);"><strong>${h.state}</strong> — ${h.date}${h.comment?' — '+h.comment:''}</div>`).join('')):'<div style="font-size:12px;color:var(--text3);">Aucun historique</div>'}</div>`;
+  document.getElementById('wf-modal-footer').innerHTML=btns;
+  openModal('modal-wf');
+}
+function advanceWF(newState){
+  const p=getProc();if(!p)return;if(!p.workflow)p.workflow={state:'draft',history:[]};
+  const labels={draft:'Brouillon',submitted:'En révision',approved:'Approuvé',rejected:'Rejeté'};
+  p.workflow.history.push({state:labels[newState]||newState,date:new Date().toLocaleDateString('fr-CH'),comment:document.getElementById('wf-comment')?.value||''});
+  p.workflow.state=newState;save();updateWFBadge(p);renderSidebar();closeModal('modal-wf');
+  showToast('Statut : '+(labels[newState]||newState)+' ✓');
+}
+function renderWorkflow(){
+  const p=getProc();if(!p)return;if(!p.workflow)p.workflow={state:'draft',history:[]};
+  const wf=p.workflow;
+  const wfDef=[{id:'draft',l:'Brouillon',d:'En cours de rédaction',icon:'⬤'},{id:'submitted',l:'En révision',d:'En attente d\'approbation',icon:'⬆'},{id:'approved',l:'Approuvé et actif',d:'Processus validé',icon:'✓'},{id:'rejected',l:'Rejeté',d:'Modifications requises',icon:'✕'}];
+  const stateOrder=['draft','submitted','approved'];const curIdx=stateOrder.indexOf(wf.state);
+  document.getElementById('wf-content').innerHTML=`
+    <div style="margin-bottom:16px;"><h3 style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px;">Cycle de vie</h3>
+    <div style="font-size:12px;color:var(--text3);">Suivez la validation du processus jusqu'à l'approbation officielle.</div></div>
+    <div style="display:flex;flex-direction:column;">
+      ${wfDef.map(s=>{
+        const done=stateOrder.indexOf(s.id)>=0&&stateOrder.indexOf(s.id)<curIdx;const active=wf.state===s.id;
+        const cls=active?'active':done?'done':'wait';
+        const lastH=(wf.history||[]).filter(h=>h.state.includes(s.l.split(' ')[0])).slice(-1)[0];
+        return`<div class="wf-step"><div class="wf-dot ${cls}">${active?s.icon:done?'✓':'·'}</div><div class="wf-content">
+          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px;">${s.l}</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">${s.d}</div>
+          ${lastH?`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:6px 9px;font-size:12px;color:var(--text2);">${lastH.date}${lastH.comment?' — '+lastH.comment:''}</div>`:''}
+        </div></div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:16px;display:flex;gap:7px;flex-wrap:wrap;">
+      ${wf.state==='draft'?`<button class="btn btn-amber" onclick="openWFModal()">⬆ Soumettre</button>`:''}
+      ${wf.state==='submitted'?`<button class="btn btn-success" onclick="openWFModal()">Valider / Rejeter</button>`:''}
+      ${wf.state==='approved'?`<span class="pill pill-green" style="padding:5px 12px;font-size:12px;">✓ Processus approuvé et actif</span>`:''}
+    </div>`;
+}
+
+// ── JSON ──────────────────────────────────────────────────────────────────────
+function renderJSON(){
+  const p=getProc();if(!p)return;
+  // MASTER DATA : organisation + postes liés depuis M0 et M1
+  const s2=getSettings();
+  const linkedPosts=(db.org?.posts||[]).filter(post=>p.steps.some(s=>s.role&&post.roles?.some(r=>r===s.role)));
+  const obj={
+    processOS:{
+      schema_version:'2.0',generated_at:new Date().toISOString(),
+      ai_instructions:'Fichier ProcessOS. Format structuré décrivant un processus industriel. Toute IA peut analyser ce JSON, générer des instructions, créer des interfaces ou extraire des données. Champs clés : steps (étapes), raci (responsabilités), decisions (branchements), fields (saisies opérateur).',
+      // MASTER DATA depuis Module 0
+      organization:{name:s2.org?.name||'',sector:s2.org?.sector||'',quality_manager:s2.org?.quality||''},
+      process:{
+        _id:p._id,id:p.id,name:p.name,level:p.level,version:p.version,
+        workflow_state:p.workflow?.state||'draft',
+        department:p.department,description:p.description,
+        iso_refs:p.iso_refs||[],
+        critical_steps:p.steps.filter(s=>s.critical).map(s=>({id:s.id,name:s.name})),
+        subprocess_calls:p.steps.filter(s=>s.type==='subprocess').map(s=>({step_id:s.id,subprocess_id:s.spid,name:s.name})),
+        steps:p.steps.map((s,i)=>({
+          id:s.id,index:i+1,name:s.name,type:s.type,role:s.role,critical:s.critical,
+          description:s.description,ai_action:s.ai_action||null,
+          ...(s.type==='subprocess'?{subprocess_ref:s.spid}:{}),
+          ...(s.fields?.length?{input_fields:s.fields.map(f=>({name:f.name,type:f.type,required:f.required,ai_check:f.ai_check||null}))}:{}),
+          ...(s.decisions?.length?{branches:s.decisions.map(b=>({condition:b.label,action:b.type,...(b.target_id?{target_step:b.target_id}:{}),...(b.block_msg?{alert_message:b.block_msg}:{})}))}:{}),
+        })),
+        raci:p.raci||{},
+      },
+      // MASTER DATA depuis Module 1 — postes liés aux rôles de ce processus
+      ...(linkedPosts.length?{linked_org_posts:linkedPosts.map(post=>({title:post.name,person:post.person||null,department:post.dept,roles:post.roles||[]}))}:{}),
+    }
+  };
+  document.getElementById('json-display').innerHTML=JSON.stringify(obj,null,2)
+    .replace(/"([^"]+)":/g,'<span class="jk">"$1"</span>:')
+    .replace(/: "([^"]+)"/g,': <span class="js">"$1"</span>')
+    .replace(/: (\d+)/g,': <span class="jn">$1</span>');
+}
+function copyJSON(){navigator.clipboard?.writeText(document.getElementById('json-display').innerText);showToast('JSON copié ✓');}
+function exportJSON(){
+  const p=getProc();if(!p)return;renderJSON();
+  const text=document.getElementById('json-display').innerText;
+  const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(text);a.download=(p.id||'processOS')+'.json';a.click();showToast('JSON exporté ✓');
+}
+
+// ── PDF ───────────────────────────────────────────────────────────────────────
+function exportPDF(){
+  const p=getProc();if(!p)return;renderSOP();
+  const content=document.getElementById('sop-printable')?.innerHTML||'';
+  const s2=getSettings();
+  const win=window.open('','_blank');if(!win){showToast('Autorise les popups');return;}
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>${p.id} — ${p.name}</title>
+  <style>body{font-family:'IBM Plex Sans',sans-serif;color:#1c1c1a;padding:40px;max-width:800px;margin:0 auto;font-size:13px;line-height:1.6;}
+  .wf-badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+  .wf-draft{background:#f4f4f1;color:#8a8a84;border:1px solid #ccc;}.wf-approved{background:#e8f5ee;color:#1a7a4a;border:1px solid #1a7a4a;}
+  .sop-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8a8a84;margin-bottom:5px;}
+  .sop-sec{margin-bottom:14px;}.crit-box{border-left:3px solid #c0392b;padding:7px 10px;background:#fdecea;margin-bottom:5px;font-size:12px;}
+  .iso-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:#e8f0fb;color:#1a6ab8;font-family:monospace;display:inline-block;margin:2px;}
+  @media print{body{padding:20px;}@page{margin:20mm;}}
+  </style></head><body>${content}<script>setTimeout(()=>{window.print();},400);<\/script></body></html>`);
+  win.document.close();showToast('PDF en cours ✓');
+}
+
+// ── ISO ───────────────────────────────────────────────────────────────────────
+function openISOModal(){
+  const p=getProc();if(!p)return;const refs=p.iso_refs||[];
+  // MASTER DATA : normes actives depuis Module 0 pré-cochées
+  document.getElementById('iso-cbs').innerHTML=ISO_OPTS.map(o=>`
+    <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;padding:7px;border-radius:var(--r);border:1px solid ${refs.includes(o.id)?'var(--purple)':'var(--border)'};background:${refs.includes(o.id)?'var(--purple-light)':'var(--bg2)'};">
+      <input type="checkbox" value="${o.id}" ${refs.includes(o.id)?'checked':''} style="width:13px;height:13px;accent-color:var(--purple);margin-top:2px;flex-shrink:0;">
+      <span style="font-size:12px;color:var(--text2);line-height:1.5;">${o.label}</span>
+    </label>`).join('');
+  openModal('modal-iso');
+}
+function saveISO(){const p=getProc();if(!p)return;p.iso_refs=Array.from(document.querySelectorAll('#iso-cbs input:checked')).map(i=>i.value);save();closeModal('modal-iso');showToast('Normes mises à jour ✓');}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function showTab(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('panel-'+id).classList.add('on');
+  document.querySelectorAll('.tab').forEach(t=>{if(t.getAttribute('onclick')?.includes("'"+id+"'"))t.classList.add('on');});
+  if(id==='gamme')renderGamme();if(id==='raci')renderRACI();if(id==='sop')renderSOP();
+  if(id==='json')renderJSON();if(id==='workflow')renderWorkflow();
+}
+
+// ── EXEMPLE ───────────────────────────────────────────────────────────────────
+function loadExample(){
+  const s1={_id:uid('p'),id:'PR-SC-001',name:'Réception de marchandise',level:'sub',version:'v1.0',workflow:{state:'approved',history:[{state:'Approuvé',date:'01.01.2025',comment:'Validé'}]},department:'Supply Chain',description:'Assurer la réception conforme de toute marchandise entrante.',iso_refs:['ISO_9001_8.4','ISO_13485_7.4.3'],
+    steps:[
+      {id:'s1a',name:'Réception du colis',type:'action',role:'Opérateur',description:'Réceptionner et compter les colis.',critical:false,ai_action:'Créer événement réception',decisions:[],fields:[{id:'f1',name:'Nombre de colis',type:'number',required:true,source:'operator',options:'',ai_check:''}]},
+      {id:'s1b',name:'Vérification état du colis',type:'decision',role:'Opérateur',description:'Vérifier état physique.',critical:true,ai_action:'Si endommagé : NC auto, notifier qualité',decisions:[{label:'Intact',type:'next',target_id:''},{label:'Endommagé',type:'block',target_id:'',block_msg:'NC générée'}],fields:[{id:'f2',name:'Photo colis',type:'photo',required:false,source:'operator',options:'',ai_check:'Obligatoire si anomalie'}]},
+      {id:'s1c',name:'Lien commande ERP',type:'action',role:'Opérateur',description:'Scanner le numéro de commande.',critical:false,ai_action:'Charger article, quantité, fournisseur',decisions:[{label:'Trouvée',type:'next',target_id:''},{label:'Introuvable',type:'block',target_id:'',block_msg:'Notifier acheteur'}],fields:[{id:'f3',name:'N° commande (PO)',type:'scan',required:true,source:'operator',options:'',ai_check:'Format PO-AAAA-NNNN'}]},
+      {id:'s1d',name:'Réception ERP + lot',type:'control',role:'Opérateur',description:'Saisir quantité, lot, péremption.',critical:true,ai_action:'Vérifier écart ±2% · Contrôler lot',decisions:[],fields:[{id:'f4',name:'Quantité reçue',type:'number',required:true,source:'operator',options:'',ai_check:'Écart ±2%'},{id:'f5',name:'N° lot',type:'scan',required:true,source:'operator',options:'',ai_check:''},{id:'f6',name:'Date péremption',type:'date',required:true,source:'operator',options:'',ai_check:''}]},
+      {id:'s1f',name:'Transmission automatique',type:'auto',role:'Système IA',description:'Déclenchement automatique.',critical:false,ai_action:'MAJ stock · Notifier AIC · Écriture comptable',decisions:[],fields:[]},
+    ],
+    raci:{'s1a_Opérateur':'R','s1b_Opérateur':'R','s1b_Superviseur':'A','s1b_Responsable Qualité':'C','s1c_Opérateur':'R','s1d_Opérateur':'R','s1d_Superviseur':'A','s1d_Responsable Qualité':'C','s1f_Système IA':'R'},
+    deliverables:{},created_at:new Date().toISOString(),updated_at:new Date().toISOString(),
+  };
+  const m1={_id:uid('p'),id:'MP-ACH-001',name:'Gestion des achats',level:'macro',version:'v1.0',workflow:{state:'approved',history:[]},department:'Achats',description:'De la demande d\'achat à la mise en stock validée.',iso_refs:['ISO_9001_8.4'],
+    steps:[
+      {id:'m1a',name:'Demande d\'achat',type:'action',role:'Demandeur',description:'Créer la demande.',critical:false,ai_action:'Vérifier budget · Proposer fournisseurs',decisions:[],fields:[]},
+      {id:'m1b',name:'Validation budget',type:'decision',role:'Superviseur',description:'Valider selon budget.',critical:false,ai_action:'',decisions:[{label:'Approuvé',type:'next',target_id:''},{label:'Refusé',type:'end',target_id:''}],fields:[]},
+      {id:'m1c',name:'Commande fournisseur',type:'action',role:'Acheteur',description:'Émettre le bon de commande.',critical:false,ai_action:'Comparer offres · Vérifier homologation',decisions:[],fields:[]},
+      {id:'m1d',name:s1.name,type:'subprocess',spid:s1._id,role:'',description:'Appel : '+s1.name,critical:false,ai_action:'',decisions:[],fields:[]},
+      {id:'m1e',name:'Mise en stock et clôture',type:'end',role:'Opérateur',description:'Mise en stock définitive.',critical:false,ai_action:'MAJ stock · Écriture comptable · Clôture PO',decisions:[],fields:[]},
+    ],
+    raci:{'m1a_Acheteur':'C','m1a_Superviseur':'A','m1b_Acheteur':'R','m1b_Superviseur':'A','m1c_Acheteur':'R','m1c_Superviseur':'A','m1e_Opérateur':'R'},
+    deliverables:{},created_at:new Date().toISOString(),updated_at:new Date().toISOString(),
+  };
+  db.subs=db.subs.filter(s=>s.id!=='PR-SC-001');
+  db.macros=db.macros.filter(m=>m.id!=='MP-ACH-001');
+  db.subs.unshift(s1);db.macros.unshift(m1);
+  save();renderSidebar();select(m1._id,'macro');
+  showToast('Exemple chargé ✓');
+}
+
+// ── MODALS ────────────────────────────────────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
+  if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();saveCurrent();showToast('Sauvegardé ✓');}
+});
+</script>
+</body>
+</html>

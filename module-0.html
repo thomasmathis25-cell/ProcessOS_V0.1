@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paramètres — ProcessOS</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+</head>
+<body>
+
+<div id="topbar" class="topbar"></div>
+
+<div style="flex:1;overflow-y:auto;">
+<div style="max-width:820px;margin:0 auto;padding:24px 32px;">
+
+  <!-- EN-TÊTE -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <h1 style="font-size:18px;font-weight:500;color:var(--text);">⚙ Paramètres</h1>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px;">Configuration globale — source de vérité pour tous les modules</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="saveAll()">Sauvegarder</button>
+  </div>
+
+  <!-- ONGLETS -->
+  <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto;">
+    <div id="stab-org"  onclick="showTab('org')"  style="padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid var(--purple);color:var(--purple);white-space:nowrap;">Organisation</div>
+    <div id="stab-site" onclick="showTab('site')" style="padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);white-space:nowrap;">Sites</div>
+    <div id="stab-dept" onclick="showTab('dept')" style="padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);white-space:nowrap;">Départements</div>
+    <div id="stab-role" onclick="showTab('role')" style="padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);white-space:nowrap;">Rôles</div>
+    <div id="stab-norm" onclick="showTab('norm')" style="padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);white-space:nowrap;">Normes ISO</div>
+  </div>
+
+  <!-- ── ORGANISATION ── -->
+  <div id="tab-org">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+      <div class="fg"><div class="fl">Nom de l'organisation</div><input class="fi" id="org-name" placeholder="Ex: Industrie Plus SA"></div>
+      <div class="fg"><div class="fl">Secteur d'activité</div>
+        <select class="fi" id="org-sector">
+          <option>Industrie générale</option><option>Dispositifs médicaux</option>
+          <option>Pharmaceutique</option><option>Agroalimentaire</option>
+          <option>Aéronautique</option><option>Automobile</option>
+          <option>Électronique</option><option>Chimie</option>
+        </select>
+      </div>
+      <div class="fg"><div class="fl">Responsable qualité</div><input class="fi" id="org-quality" placeholder="Nom du responsable qualité"></div>
+      <div class="fg"><div class="fl">Version du système qualité</div><input class="fi" id="org-qms" placeholder="Ex: QMS v2.1"></div>
+    </div>
+    <div style="padding:10px 12px;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--r);font-size:12px;color:var(--green);">
+      Ces informations apparaissent dans l'en-tête de toutes vos fiches SOP exportées.
+    </div>
+  </div>
+
+  <!-- ── SITES ── -->
+  <div id="tab-site" style="display:none;">
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.7;">
+      Sites de production ou unités organisationnelles. Chaque site peut avoir ses propres informations légales et bancaires.<br>
+      <strong>Ces sites sont utilisés dans le Module 3</strong> pour structurer vos workcenters.
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+      <button class="btn btn-primary btn-sm" onclick="openSiteModal(null)">+ Nouveau site</button>
+    </div>
+    <div id="sites-list" style="display:flex;flex-direction:column;gap:7px;"></div>
+    <div id="sites-empty" style="display:none;padding:28px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);">
+      <div style="font-size:24px;margin-bottom:8px;">🏢</div>
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:5px;">Aucun site configuré</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Crée ton premier site de production.</div>
+      <button class="btn btn-primary" onclick="openSiteModal(null)">+ Créer un site</button>
+    </div>
+  </div>
+
+  <!-- ── DÉPARTEMENTS ── -->
+  <div id="tab-dept" style="display:none;">
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+      Départements utilisés dans tous les modules. Le <strong>code</strong> sert de clé pour le contrôle de gestion.
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+      <button class="btn btn-primary btn-sm" onclick="openDeptModal(null)">+ Nouveau département</button>
+    </div>
+    <div id="list-departments"></div>
+  </div>
+
+  <!-- ── RÔLES ── -->
+  <div id="tab-role" style="display:none;">
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
+      Rôles utilisés dans la RACI (Module 2) et l'organigramme (Module 1). Un poste peut avoir plusieurs rôles.
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <input class="fi" id="role-new" placeholder="Ex: Chef de projet" style="flex:1;">
+      <button class="btn btn-primary btn-sm" onclick="addRole()">Ajouter</button>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px;">Suggestions — cliquer pour ajouter</div>
+      <div id="role-suggestions" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+    </div>
+    <div id="list-roles"></div>
+  </div>
+
+  <!-- ── NORMES ISO ── -->
+  <div id="tab-norm" style="display:none;">
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
+      Normes actives dans votre organisation. Apparaissent dans les fiches SOP et le JSON universel.
+    </div>
+    <div id="list-norms" style="display:flex;flex-direction:column;gap:7px;"></div>
+  </div>
+
+</div>
+</div>
+
+<div class="statusbar">
+  <div class="status-dot"></div>
+  <span>Module 0 — Paramètres globaux · Source de vérité pour tous les modules</span>
+  <span style="margin-left:auto;" id="stime"></span>
+</div>
+
+<div id="toast"></div>
+
+<!-- ═══ MODAL SITE ═══ -->
+<div class="modal-overlay" id="modal-site">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <div class="modal-title" id="site-modal-title">Nouveau site</div>
+      <button class="icon-btn" onclick="closeModal('modal-site')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Identification -->
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px;">Identification</div>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-bottom:10px;">
+        <div class="fg"><div class="fl">Code *</div><input class="fi" id="s-code" placeholder="Ex: SITE-N"></div>
+        <div class="fg"><div class="fl">Nom *</div><input class="fi" id="s-name" placeholder="Ex: Usine Nord"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div class="fg"><div class="fl">Adresse</div><input class="fi" id="s-address" placeholder="Rue et numéro"></div>
+        <div class="fg"><div class="fl">Ville</div><input class="fi" id="s-city" placeholder="Ex: Lausanne"></div>
+        <div class="fg"><div class="fl">Pays</div><input class="fi" id="s-country" value="CH"></div>
+      </div>
+      <!-- Informations légales -->
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px;margin-top:4px;">Informations légales & bancaires</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div class="fg"><div class="fl">Numéro TVA / IDE</div><input class="fi" id="s-tva" placeholder="Ex: CHE-123.456.789"></div>
+        <div class="fg"><div class="fl">RC / Registre du commerce</div><input class="fi" id="s-rc" placeholder="Ex: CH-XXX.X.XXX.XXX-X"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div class="fg"><div class="fl">IBAN</div><input class="fi" id="s-iban" placeholder="Ex: CH56 0483 5012 3456 7800 9"></div>
+        <div class="fg"><div class="fl">BIC / SWIFT</div><input class="fi" id="s-bic" placeholder="Ex: CRESCHZZ80A"></div>
+      </div>
+      <!-- Informations générales -->
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px;margin-top:4px;">Informations générales</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div class="fg"><div class="fl">Téléphone</div><input class="fi" id="s-phone" placeholder="Ex: +41 21 000 00 00"></div>
+        <div class="fg"><div class="fl">Email général</div><input class="fi" id="s-email" placeholder="Ex: contact@usine.ch"></div>
+      </div>
+      <div class="fg" style="margin-bottom:10px;">
+        <div class="fl">Notes</div>
+        <textarea class="fi" id="s-notes" rows="2" placeholder="Informations complémentaires, certifications particulières..."></textarea>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text2);">
+        <input type="checkbox" id="s-main" style="width:14px;height:14px;accent-color:var(--purple);">
+        Site principal de l'organisation
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="s-del-btn" style="display:none;margin-right:auto;" onclick="deleteSite()">Supprimer</button>
+      <button class="btn" onclick="closeModal('modal-site')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveSite()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL DÉPARTEMENT ═══ -->
+<div class="modal-overlay" id="modal-dept">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="dept-modal-title">Nouveau département</div>
+      <button class="icon-btn" onclick="closeModal('modal-dept')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="padding:8px 11px;background:var(--purple-light);border:1px solid var(--purple-bg);border-radius:var(--r);font-size:11px;color:var(--purple);margin-bottom:4px;">
+        Le code département est utilisé comme clé de référence dans le contrôle de gestion.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;">
+        <div class="fg"><div class="fl">Code * <span style="font-weight:400;text-transform:none;">(clé CG)</span></div><input class="fi" id="d-code" placeholder="Ex: PROD" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="fg"><div class="fl">Nom *</div><input class="fi" id="d-name" placeholder="Ex: Production"></div>
+      </div>
+      <div class="fg"><div class="fl">Description</div><textarea class="fi" id="d-desc" rows="2" placeholder="Rôle et périmètre du département..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="d-del-btn" style="display:none;margin-right:auto;" onclick="deleteDept()">Supprimer</button>
+      <button class="btn" onclick="closeModal('modal-dept')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveDept()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ÉTAT ──────────────────────────────────────────────────────────────────────
+let sitesData = [];
+let editingSiteId = null;
+let editingDeptIdx = null;
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+applyTheme();
+injectSharedCSS();
+initSupabase();
+(async () => {
+  if (supa) {
+    const { data:{ session } } = await supa.auth.getSession();
+    if (session?.user) await onLoginSuccess(session.user);
+  }
+  await load();
+  renderTopbar('module-0');
+  loadFormValues();
+  renderRoleSuggestions();
+  await loadSites();
+})();
+
+// ── ONGLETS ───────────────────────────────────────────────────────────────────
+function showTab(id) {
+  ['org','site','dept','role','norm'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === id ? 'block' : 'none';
+    const tab = document.getElementById('stab-' + t);
+    tab.style.borderBottomColor = t === id ? 'var(--purple)' : 'transparent';
+    tab.style.color              = t === id ? 'var(--purple)' : 'var(--text3)';
+  });
+  if (id === 'dept') renderDepts();
+  if (id === 'role') { renderRoles(); renderRoleSuggestions(); }
+  if (id === 'site') renderSitesList();
+  if (id === 'norm') renderNorms();
+}
+
+// ── ORGANISATION ──────────────────────────────────────────────────────────────
+function loadFormValues() {
+  const s = getSettings();
+  document.getElementById('org-name').value    = s.org?.name    || '';
+  document.getElementById('org-sector').value  = s.org?.sector  || 'Industrie générale';
+  document.getElementById('org-quality').value = s.org?.quality || '';
+  document.getElementById('org-qms').value     = s.org?.qms     || '';
+}
+
+function saveAll() {
+  const s = getSettings();
+  s.org = {
+    name:    document.getElementById('org-name').value.trim(),
+    sector:  document.getElementById('org-sector').value,
+    quality: document.getElementById('org-quality').value.trim(),
+    qms:     document.getElementById('org-qms').value.trim(),
+  };
+  s.activeNorms = Array.from(document.querySelectorAll('#list-norms input:checked')).map(i => i.value);
+  saveSettingsData(s);
+  showToast('Paramètres sauvegardés ✓');
+  _updateStime('Sauvegardé');
+}
+
+// ── SITES ─────────────────────────────────────────────────────────────────────
+async function loadSites() {
+  if (!isCloudMode()) {
+    const s = getSettings();
+    sitesData = (s.sites || []).map((n, i) => ({ id: 'local-'+i, name: n, code: n.substring(0,6).toUpperCase(), is_main: i===0 }));
+    return;
+  }
+  const { data } = await supa.from('sites').select('*').eq('org_id', currentOrgId).order('sort_order');
+  sitesData = data || [];
+  // Migration auto depuis settings si vide
+  if (!sitesData.length) {
+    const s = getSettings();
+    for (let i=0; i<(s.sites||['Site principal']).length; i++) {
+      const name = (s.sites||['Site principal'])[i];
+      await supa.from('sites').insert({ org_id:currentOrgId, code:name.substring(0,6).toUpperCase().replace(/\s/g,'-'), name, country:'CH', sort_order:i });
+    }
+    const { data:r } = await supa.from('sites').select('*').eq('org_id',currentOrgId).order('sort_order');
+    sitesData = r || [];
+  }
+}
+
+function renderSitesList() {
+  const el = document.getElementById('sites-list');
+  const em = document.getElementById('sites-empty');
+  if (!sitesData.length) {
+    el.innerHTML=''; em.style.display='block'; return;
+  }
+  em.style.display='none';
+  el.innerHTML = sitesData.map(s => `
+    <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .15s;"
+      onmouseover="this.style.borderColor='var(--purple)'"
+      onmouseout="this.style.borderColor='var(--border)'"
+      onclick="openSiteModal('${s.id}')">
+      <div style="font-size:20px;">🏢</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;color:var(--text);">${s.name}
+          ${s.is_main?'<span style="font-size:9px;padding:1px 6px;border-radius:20px;background:var(--purple-bg);color:var(--purple);font-weight:600;margin-left:6px;">Principal</span>':''}
+        </div>
+        <div style="font-size:11px;color:var(--text3);">${s.code}${s.city?' · '+s.city:''}${s.country?' · '+s.country:''}${s.tva_number?' · TVA: '+s.tva_number:''}</div>
+      </div>
+      <span style="font-size:11px;color:var(--purple);">✎</span>
+    </div>`).join('');
+}
+
+function openSiteModal(id) {
+  editingSiteId = id;
+  const s = id ? sitesData.find(x=>x.id===id) : null;
+  document.getElementById('site-modal-title').textContent = id ? 'Modifier — '+(s?.name||'Site') : 'Nouveau site';
+  document.getElementById('s-code').value    = s?.code    || '';
+  document.getElementById('s-name').value    = s?.name    || '';
+  document.getElementById('s-address').value = s?.address || '';
+  document.getElementById('s-city').value    = s?.city    || '';
+  document.getElementById('s-country').value = s?.country || 'CH';
+  document.getElementById('s-tva').value     = s?.tva_number || '';
+  document.getElementById('s-rc').value      = s?.rc_number  || '';
+  document.getElementById('s-iban').value    = s?.iban       || '';
+  document.getElementById('s-bic').value     = s?.bic        || '';
+  document.getElementById('s-phone').value   = s?.phone      || '';
+  document.getElementById('s-email').value   = s?.email      || '';
+  document.getElementById('s-notes').value   = s?.notes      || '';
+  document.getElementById('s-main').checked  = s?.is_main    || false;
+  document.getElementById('s-del-btn').style.display = id ? '' : 'none';
+  openModal('modal-site');
+  setTimeout(()=>document.getElementById('s-code').focus(),100);
+}
+
+async function saveSite() {
+  const code = document.getElementById('s-code').value.trim();
+  const name = document.getElementById('s-name').value.trim();
+  if (!code||!name) { showToast('Code et nom requis'); return; }
+  const data = {
+    org_id:     currentOrgId,
+    code, name,
+    address:    document.getElementById('s-address').value.trim()||null,
+    city:       document.getElementById('s-city').value.trim()||null,
+    country:    document.getElementById('s-country').value||'CH',
+    tva_number: document.getElementById('s-tva').value.trim()||null,
+    rc_number:  document.getElementById('s-rc').value.trim()||null,
+    iban:       document.getElementById('s-iban').value.trim()||null,
+    bic:        document.getElementById('s-bic').value.trim()||null,
+    phone:      document.getElementById('s-phone').value.trim()||null,
+    email:      document.getElementById('s-email').value.trim()||null,
+    notes:      document.getElementById('s-notes').value.trim()||null,
+    is_main:    document.getElementById('s-main').checked,
+    sort_order: sitesData.length,
+  };
+  if (isCloudMode()) {
+    let err;
+    if (editingSiteId && !editingSiteId.startsWith('local-')) {
+      ({ error:err } = await supa.from('sites').update(data).eq('id', editingSiteId));
+    } else {
+      ({ error:err } = await supa.from('sites').insert(data));
+    }
+    if (err) { showToast('Erreur : '+err.message); console.error(err); return; }
+    await loadSites();
+  } else {
+    const s = getSettings();
+    if (!s.sites) s.sites=[];
+    s.sites.push(name);
+    saveSettingsData(s);
+    await loadSites();
+  }
+  renderSitesList();
+  closeModal('modal-site');
+  showToast('Site sauvegardé ✓');
+}
+
+async function deleteSite() {
+  const name = document.getElementById('s-name').value;
+  if (!confirm('Supprimer le site "'+name+'" ? Les workcenters associés seront détachés.')) return;
+  if (isCloudMode() && editingSiteId && !editingSiteId.startsWith('local-')) {
+    await supa.from('sites').delete().eq('id', editingSiteId);
+    await loadSites();
+  }
+  renderSitesList();
+  closeModal('modal-site');
+  showToast('Site supprimé');
+}
+
+// ── DÉPARTEMENTS ──────────────────────────────────────────────────────────────
+// Maintenant stockés comme objets {code, name, description} dans settings
+function renderDepts() {
+  const s = getSettings();
+  const depts = getDeptObjects(s);
+  const el = document.getElementById('list-departments');
+  if (!el) return;
+  if (!depts.length) {
+    el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:10px;text-align:center;background:var(--bg3);border-radius:var(--r);">Aucun département — clique "+ Nouveau département"</div>';
+    return;
+  }
+  el.innerHTML = depts.map((d,i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;cursor:pointer;transition:all .15s;"
+      onmouseover="this.style.borderColor='var(--purple)'"
+      onmouseout="this.style.borderColor='var(--border)'"
+      onclick="openDeptModal(${i})">
+      <div style="width:42px;font-size:11px;font-weight:700;color:var(--purple);font-family:var(--mono);">${d.code||'—'}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;color:var(--text);">${d.name}</div>
+        ${d.description?`<div style="font-size:11px;color:var(--text3);">${d.description}</div>`:''}
+      </div>
+      <span style="font-size:11px;color:var(--purple);">✎</span>
+    </div>`).join('');
+}
+
+// Retourne les départements comme objets {code, name, description}
+// Compatible avec l'ancien format (array de strings) et le nouveau (array d'objets)
+function getDeptObjects(s) {
+  return (s.departments || []).map(d => {
+    if (typeof d === 'string') return { code: d.substring(0,4).toUpperCase(), name: d, description: '' };
+    return d;
+  });
+}
+
+function openDeptModal(idx) {
+  editingDeptIdx = idx;
+  const s = getSettings();
+  const depts = getDeptObjects(s);
+  const d = idx !== null ? depts[idx] : null;
+  document.getElementById('dept-modal-title').textContent = idx !== null ? 'Modifier — '+(d?.name||'Département') : 'Nouveau département';
+  document.getElementById('d-code').value = d?.code || '';
+  document.getElementById('d-name').value = d?.name || '';
+  document.getElementById('d-desc').value = d?.description || '';
+  document.getElementById('d-del-btn').style.display = idx !== null ? '' : 'none';
+  openModal('modal-dept');
+  setTimeout(()=>document.getElementById('d-code').focus(),100);
+}
+
+function saveDept() {
+  const code = document.getElementById('d-code').value.trim().toUpperCase();
+  const name = document.getElementById('d-name').value.trim();
+  if (!name) { showToast('Nom requis'); return; }
+  const s = getSettings();
+  const depts = getDeptObjects(s);
+  const obj = { code, name, description: document.getElementById('d-desc').value.trim() };
+  if (editingDeptIdx !== null) {
+    depts[editingDeptIdx] = obj;
+  } else {
+    if (depts.find(d=>d.name===name)) { showToast('Département déjà existant'); return; }
+    depts.push(obj);
+  }
+  s.departments = depts;
+  saveSettingsData(s);
+  renderDepts();
+  closeModal('modal-dept');
+  showToast('Département sauvegardé ✓');
+}
+
+function deleteDept() {
+  const s = getSettings();
+  const depts = getDeptObjects(s);
+  const name = depts[editingDeptIdx]?.name || '';
+  if (!confirm('Supprimer le département "'+name+'" ?')) return;
+  depts.splice(editingDeptIdx, 1);
+  s.departments = depts;
+  saveSettingsData(s);
+  renderDepts();
+  closeModal('modal-dept');
+  showToast('Département supprimé');
+}
+
+// ── RÔLES ─────────────────────────────────────────────────────────────────────
+function renderRoles() {
+  const s = getSettings();
+  const roles = s.roles || [];
+  const el = document.getElementById('list-roles');
+  if (!el) return;
+  if (!roles.length) {
+    el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:10px;text-align:center;background:var(--bg3);border-radius:var(--r);">Aucun rôle</div>';
+    return;
+  }
+  el.innerHTML = roles.map((r,i) => `
+    <div style="display:flex;gap:8px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;margin-bottom:4px;">
+      <span style="flex:1;font-size:13px;color:var(--text);">${r}</span>
+      <button class="icon-btn danger" onclick="removeRole(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addRole() {
+  const input = document.getElementById('role-new');
+  const val   = input.value.trim();
+  if (!val) { input.focus(); return; }
+  const s = getSettings();
+  if (!s.roles) s.roles=[];
+  if (s.roles.includes(val)) { showToast('Existe déjà'); return; }
+  s.roles.push(val);
+  saveSettingsData(s);
+  input.value='';
+  renderRoles(); renderRoleSuggestions();
+  showToast('"'+val+'" ajouté ✓');
+}
+
+function removeRole(idx) {
+  const s = getSettings();
+  if (!confirm('Supprimer "'+s.roles[idx]+'" ?')) return;
+  s.roles.splice(idx,1);
+  saveSettingsData(s);
+  renderRoles(); renderRoleSuggestions();
+}
+
+function renderRoleSuggestions() {
+  const existing = getSettings().roles || [];
+  const suggestions = ROLE_PRESETS.filter(r=>!existing.includes(r)).slice(0,12);
+  document.getElementById('role-suggestions').innerHTML = suggestions.map(r=>`
+    <span onclick="addRoleFromSuggestion(${JSON.stringify(r)})"
+      style="font-size:11px;padding:3px 9px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .15s;"
+      onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">${r}</span>`).join('');
+}
+
+function addRoleFromSuggestion(role) {
+  const s = getSettings();
+  if (!s.roles) s.roles=[];
+  if (s.roles.includes(role)) { showToast('Déjà présent'); return; }
+  s.roles.push(role);
+  saveSettingsData(s);
+  renderRoles(); renderRoleSuggestions();
+  showToast('"'+role+'" ajouté ✓');
+}
+
+// ── NORMES ISO ────────────────────────────────────────────────────────────────
+function renderNorms() {
+  const active = getSettings().activeNorms || [];
+  document.getElementById('list-norms').innerHTML = ISO_OPTS.map(o=>`
+    <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;padding:9px 12px;border-radius:var(--r);border:1px solid ${active.includes(o.id)?'var(--purple)':'var(--border)'};background:${active.includes(o.id)?'var(--purple-light)':'var(--bg2)'};">
+      <input type="checkbox" value="${o.id}" ${active.includes(o.id)?'checked':''}
+        style="width:14px;height:14px;accent-color:var(--purple);margin-top:2px;flex-shrink:0;"
+        onchange="toggleNorm(this)">
+      <span style="font-size:12px;color:var(--text2);line-height:1.5;">${o.label}</span>
+    </label>`).join('');
+}
+
+function toggleNorm(cb) {
+  const s = getSettings();
+  if (!s.activeNorms) s.activeNorms=[];
+  if (cb.checked) { if (!s.activeNorms.includes(cb.value)) s.activeNorms.push(cb.value); }
+  else s.activeNorms = s.activeNorms.filter(n=>n!==cb.value);
+  saveSettingsData(s);
+  renderNorms();
+  showToast('Normes mises à jour ✓');
+}
+
+// ── MODALS ────────────────────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+// PAS de fermeture au clic extérieur — seulement Annuler ou ✕
+
+// ── CLAVIER ───────────────────────────────────────────────────────────────────
+document.getElementById('role-new')?.addEventListener('keydown', e => {
+  if (e.key==='Enter') addRole();
+});
+document.addEventListener('keydown', e => {
+  if ((e.metaKey||e.ctrlKey) && e.key==='s') { e.preventDefault(); saveAll(); }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProcessOS</title>
+<!-- 1. Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- 2. Tes clés (jamais sur GitHub) -->
+<script src="config.js"></script>
+<!-- 3. Couche partagée -->
+<script src="shared.js"></script>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar" class="topbar"></div>
+
+<!-- CONTENU PRINCIPAL -->
+<div style="flex:1;overflow-y:auto;">
+
+  <!-- HERO -->
+  <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:28px 40px 24px;box-shadow:var(--shadow);">
+    <div style="max-width:800px;margin:0 auto;">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;">
+        <div style="width:46px;height:46px;border-radius:12px;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:white;box-shadow:var(--shadow-md);">P</div>
+        <div>
+          <h1 style="font-size:20px;font-weight:500;color:var(--text);">ProcessOS</h1>
+          <div id="org-name-display" style="font-size:13px;color:var(--text3);"></div>
+        </div>
+      </div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.6;max-width:600px;">
+        Décrivez vos processus une fois. Guidez vos équipes partout.<br>
+        <span style="font-size:12px;color:var(--text3);">Format JSON universel · Lisible par toute IA · Local ou cloud Supabase</span>
+      </div>
+      <!-- Badge connexion -->
+      <div id="cloud-badge" style="display:none;margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <div style="max-width:800px;margin:20px auto 0;padding:0 40px;">
+
+    <!-- STATS -->
+    <div id="stats-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;"></div>
+
+    <!-- MODULES -->
+    <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:9px;">Modules</div>
+    <div id="modules-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:24px;"></div>
+
+    <!-- ACCÈS RAPIDE -->
+    <div id="quick-actions" style="display:none;margin-bottom:24px;">
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:9px;">Derniers processus</div>
+      <div id="recent-processes" style="display:flex;flex-direction:column;gap:5px;"></div>
+    </div>
+
+    <!-- ENCADRÉ IA -->
+    <div style="background:var(--purple-light);border:1px solid var(--purple-bg);border-radius:var(--r2);padding:13px 15px;margin-bottom:28px;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="font-size:18px;flex-shrink:0;">🤖</div>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--purple);margin-bottom:3px;">Couche IA universelle</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6;">Chaque processus génère un JSON structuré que toute IA peut lire et exploiter. Commande non conforme, colis endommagé, retard fournisseur — l'IA comprend le contexte métier et sait quoi faire.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div class="status-dot" id="status-dot"></div>
+  <span id="status-msg">ProcessOS — Chargement...</span>
+  <span style="margin-left:auto;" id="stime"></span>
+</div>
+
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ÉCRAN DE LOGIN — visible au démarrage si non connecté
+═══════════════════════════════════════════════════════════ -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:20px;">
+
+  <div style="width:48px;height:48px;border-radius:12px;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:white;box-shadow:var(--shadow-lg);">P</div>
+  <div style="text-align:center;">
+    <h2 style="font-size:20px;font-weight:500;color:var(--text);margin-bottom:4px;">ProcessOS</h2>
+    <div style="font-size:13px;color:var(--text3);">Connectez-vous pour synchroniser vos données</div>
+  </div>
+
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-lg);">
+
+    <!-- Onglets Login / Créer compte -->
+    <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:4px;">
+      <div id="tab-login"  onclick="switchAuthTab('login')"  style="flex:1;padding:8px;text-align:center;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid var(--purple);color:var(--purple);">Connexion</div>
+      <div id="tab-signup" onclick="switchAuthTab('signup')" style="flex:1;padding:8px;text-align:center;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);">Créer un compte</div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Email</div>
+      <input class="fi" id="auth-email" type="email" placeholder="votre@email.com">
+    </div>
+    <div class="fg">
+      <div class="fl">Mot de passe</div>
+      <input class="fi" id="auth-password" type="password" placeholder="••••••••">
+    </div>
+
+    <!-- Champ nom org — visible seulement pour la création de compte -->
+    <div class="fg" id="signup-extra" style="display:none;">
+      <div class="fl">Nom de l'organisation</div>
+      <input class="fi" id="auth-orgname" placeholder="Ex: Industrie Plus SA">
+    </div>
+
+    <div id="auth-error" style="display:none;font-size:12px;color:var(--red);padding:7px 10px;background:var(--red-bg);border-radius:var(--r);border:1px solid var(--red);"></div>
+
+    <button class="btn btn-primary" id="auth-submit" onclick="doAuth()" style="padding:10px;font-size:13px;">Se connecter</button>
+
+    <div style="text-align:center;font-size:11px;color:var(--text3);">— ou —</div>
+    <button class="btn" onclick="useLocalMode()" style="padding:9px;font-size:12px;">
+      Continuer en mode local (sans compte)
+    </button>
+
+  </div>
+
+  <!-- Info mode local -->
+  <div style="max-width:360px;text-align:center;font-size:11px;color:var(--text3);line-height:1.6;">
+    Le mode local sauvegarde vos données dans ce navigateur.<br>
+    Créez un compte pour synchroniser sur plusieurs appareils.
+  </div>
+
+</div>
+
+<script>
+// ── INIT ──────────────────────────────────────────────────────────────────────
+applyTheme();
+injectSharedCSS();
+
+const cloudAvailable = initSupabase();
+
+if (cloudAvailable) {
+  // Vérifier session existante
+  supa.auth.getSession().then(({ data: { session } }) => {
+    if (session?.user) {
+      // Déjà connecté
+      onLoginSuccess(session.user).then(() => {
+        renderHome();
+        updateStatusBar(true);
+      });
+    } else {
+      // Pas de session — montrer le login
+      showLoginOverlay();
+    }
+  });
+} else {
+  // Pas de config Supabase — mode local direct
+  useLocalMode();
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+function showLoginOverlay() {
+  const overlay = document.getElementById('login-overlay');
+  overlay.style.display = 'flex';
+  overlay.style.flexDirection = 'column';
+  setTimeout(() => document.getElementById('auth-email').focus(), 100);
+}
+
+function switchAuthTab(tab) {
+  const isSignup = tab === 'signup';
+  document.getElementById('tab-login').style.borderBottomColor  = isSignup ? 'transparent' : 'var(--purple)';
+  document.getElementById('tab-login').style.color              = isSignup ? 'var(--text3)'  : 'var(--purple)';
+  document.getElementById('tab-signup').style.borderBottomColor = isSignup ? 'var(--purple)' : 'transparent';
+  document.getElementById('tab-signup').style.color             = isSignup ? 'var(--purple)' : 'var(--text3)';
+  document.getElementById('signup-extra').style.display         = isSignup ? 'block' : 'none';
+  document.getElementById('auth-submit').textContent            = isSignup ? 'Créer le compte' : 'Se connecter';
+  document.getElementById('auth-error').style.display           = 'none';
+  document.getElementById('login-overlay')._mode                = tab;
+}
+
+async function doAuth() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl    = document.getElementById('auth-error');
+  const mode     = document.getElementById('login-overlay')._mode || 'login';
+  errEl.style.display = 'none';
+
+  if (!email || !password) {
+    errEl.textContent = 'Email et mot de passe requis';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('auth-submit');
+  btn.textContent = 'Chargement...';
+  btn.disabled = true;
+
+  try {
+    if (mode === 'signup') {
+      // ── CRÉATION DE COMPTE ──────────────────────────────────
+      const { data, error } = await supa.auth.signUp({ email, password });
+      if (error) throw error;
+
+      const orgName = document.getElementById('auth-orgname').value.trim() || email.split('@')[0] + ' Organisation';
+
+      // Créer l'organisation
+      const { data: org, error: orgErr } = await supa
+        .from('organizations')
+        .insert({
+          name: orgName,
+          slug: email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now(),
+          plan: 'demo',
+          max_users: 2, max_articles: 50, max_processes: 10,
+          modules_enabled: ['module-0', 'module-1', 'module-2'],
+        })
+        .select().single();
+      if (orgErr) throw orgErr;
+
+      // Créer le profil utilisateur
+      await supa.from('user_profiles').insert({
+        id: data.user.id, org_id: org.id, email, role: 'owner',
+      });
+
+      // Créer la licence démo
+      await supa.from('licenses').insert({
+        org_id: org.id, plan: 'demo',
+        max_users: 2, max_articles: 50, max_processes: 10,
+        modules_enabled: ['module-0', 'module-1', 'module-2'],
+        price_monthly: 0, status: 'trial',
+        trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+
+      await onLoginSuccess(data.user);
+      renderHome();
+      updateStatusBar(true);
+      showToast('Compte créé — plan démo 30 jours ✓');
+
+    } else {
+      // ── CONNEXION ───────────────────────────────────────────
+      const { data, error } = await supa.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await onLoginSuccess(data.user);
+      renderHome();
+      updateStatusBar(true);
+    }
+
+    document.getElementById('login-overlay').style.display = 'none';
+
+  } catch (e) {
+    errEl.textContent = e.message || 'Erreur de connexion';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = mode === 'signup' ? 'Créer le compte' : 'Se connecter';
+  }
+}
+
+// Entrée clavier dans les champs
+['auth-email', 'auth-password', 'auth-orgname'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doAuth();
+  });
+});
+
+function useLocalMode() {
+  document.getElementById('login-overlay').style.display = 'none';
+  load().then(() => { renderHome(); updateStatusBar(false); });
+}
+
+// ── STATUS BAR ────────────────────────────────────────────────────────────────
+function updateStatusBar(cloud) {
+  const dot = document.getElementById('status-dot');
+  const msg = document.getElementById('status-msg');
+  if (cloud) {
+    dot.style.background = 'var(--green)';
+    msg.textContent = '☁ Connecté — ' + (currentUser?.email || '') + ' · ' + (currentLicense?.plan || 'demo').toUpperCase();
+  } else {
+    dot.style.background = 'var(--amber)';
+    msg.textContent = 'Mode local — données sauvegardées dans ce navigateur';
+  }
+}
+
+// ── RENDU PAGE D'ACCUEIL ──────────────────────────────────────────────────────
+function renderHome() {
+  renderTopbar('index');
+
+  const s = getSettings();
+  const orgEl = document.getElementById('org-name-display');
+  if (s.org?.name) orgEl.textContent = s.org.name;
+
+  // Badge cloud
+  const badge = document.getElementById('cloud-badge');
+  if (currentUser) {
+    badge.style.display = 'inline-flex';
+    const plan = currentLicense?.plan || 'demo';
+    const planColors = { demo: 'amber', starter: 'blue', pro: 'purple', enterprise: 'green' };
+    const col = planColors[plan] || 'blue';
+    badge.innerHTML = `<span style="font-size:11px;padding:2px 10px;border-radius:20px;font-weight:600;background:var(--${col}-bg);color:var(--${col});border:1px solid var(--${col});">Plan ${plan.toUpperCase()}</span>`;
+  }
+
+  // Stats
+  const macros   = db.macros?.length || 0;
+  const subs     = db.subs?.length   || 0;
+  const posts    = db.org?.posts?.length || 0;
+  const approved = [...(db.macros||[]),...(db.subs||[])].filter(p => p.workflow?.state === 'approved').length;
+
+  document.getElementById('stats-row').innerHTML = [
+    { label: 'Macro-processus', value: macros,   color: 'purple' },
+    { label: 'Sous-processus',  value: subs,     color: 'teal'   },
+    { label: 'Postes RH',       value: posts,    color: 'blue'   },
+    { label: 'Approuvés',       value: approved, color: 'green'  },
+  ].map(st => `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;box-shadow:var(--shadow);">
+      <div style="font-size:22px;font-weight:500;color:var(--${st.color});margin-bottom:2px;">${st.value}</div>
+      <div style="font-size:11px;color:var(--text3);">${st.label}</div>
+    </div>`).join('');
+
+  // Modules
+  const mods = [
+    { id:'module-0', icon:'⚙',  name:'Paramètres',          desc:'Organisation, départements, rôles, normes ISO',         color:'purple', file:'module-0.html', status:'Disponible'    },
+    { id:'module-1', icon:'👥', name:'RH & Organisation',    desc:'Organigramme, postes, rôles, polyvalence',              color:'teal',   file:'module-1.html', status:'Disponible'    },
+    { id:'module-2', icon:'🔁', name:'Processus',            desc:'Éditeur, RACI, gamme, workflow, JSON IA',               color:'blue',   file:'module-2.html', status:'Disponible'    },
+    { id:'module-3', icon:'🏭', name:'Structure industrielle',desc:'Sites, workcenters, centres de frais, modèles d\'équipe', color:'amber',  file:'module-3.html', status:'Disponible'    },
+    { id:'module-4', icon:'📋', name:'Articles & BOM',       desc:'Base articles, nomenclature, gamme de fabrication',     color:'orange', file:null,            status:'Phase 1'       },
+    { id:'module-5', icon:'📦', name:'Supply Chain',         desc:'OF, stocks, commandes clients et fournisseurs',         color:'green',  file:null,            status:'Phase 2'       },
+  ];
+
+  document.getElementById('modules-grid').innerHTML = mods.map(m => {
+    const locked = m.file && !canAccessModule(m.id);
+    return `
+    <div onclick="${m.file && !locked ? `window.location='${m.file}'` : ''}"
+      style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:13px;cursor:${m.file&&!locked?'pointer':'default'};transition:all .15s;box-shadow:var(--shadow);opacity:${m.file?'1':'.55'};"
+      onmouseover="if(${!!m.file&&!locked})this.style.borderColor='var(--${m.color})'"
+      onmouseout="this.style.borderColor='var(--border)'">
+      <div style="font-size:18px;margin-bottom:5px;">${m.icon}</div>
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px;">${m.name}</div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.4;margin-bottom:6px;">${m.desc}</div>
+      <span style="font-size:10px;padding:1px 7px;border-radius:20px;font-weight:600;background:var(--${m.color}-bg,var(--bg3));color:var(--${m.color},var(--text3));">
+        ${locked ? '🔒 Upgrade requis' : m.status}
+      </span>
+    </div>`;
+  }).join('');
+
+  // Derniers processus
+  const allProcs = [...(db.macros||[]),...(db.subs||[])];
+  if (allProcs.length > 0) {
+    document.getElementById('quick-actions').style.display = 'block';
+    const wfColors = { draft:'amber', submitted:'blue', approved:'green', rejected:'red' };
+    const wfLabels = { draft:'Brouillon', submitted:'En révision', approved:'Approuvé', rejected:'Rejeté' };
+    document.getElementById('recent-processes').innerHTML = allProcs.slice(-5).reverse().map(p => {
+      const wfState = p.workflow?.state || 'draft';
+      return `
+        <div onclick="window.location='module-2.html?id=${p._id}'"
+          style="display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .15s;"
+          onmouseover="this.style.borderColor='var(--purple)'"
+          onmouseout="this.style.borderColor='var(--border)'">
+          <div style="width:26px;height:26px;border-radius:6px;background:var(--${p.level==='macro'?'purple':'teal'}-bg);color:var(--${p.level==='macro'?'purple':'teal'});display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;">${p.level==='macro'?'M':'S'}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+            <div style="font-size:11px;color:var(--text3);">${p.id} · ${p.department} · ${p.steps?.length||0} étapes</div>
+          </div>
+          <span style="font-size:10px;padding:1px 7px;border-radius:20px;font-weight:600;background:var(--${wfColors[wfState]}-bg);color:var(--${wfColors[wfState]});white-space:nowrap;">${wfLabels[wfState]}</span>
+        </div>`;
+    }).join('');
+  }
+
+  document.getElementById('stime').textContent =
+    'Chargé à ' + new Date().toLocaleTimeString('fr-CH', { hour:'2-digit', minute:'2-digit' });
+}
+</script>
+</body>
+</html>
